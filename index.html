@@ -1750,7 +1750,9 @@ function printLei(){
   w.document.write('<h3>'+l.ementa+'</h3>');
   w.document.write('<pre>'+l.texto+'</pre>');
   w.document.write('<footer>Portal da Transparência — Prefeitura de Vargem Grande do Rio Pardo — MG &bull; CNPJ 19.851.397/0001-39 &bull; Publicado em '+l.data+'</footer>');
-  w.document.write('</body></html>');
+  w.document.write('
+<script>window.RADGOV_API_BASE="/api/index.php?r=";</script>
+</body></html>');
   w.document.close();
   w.focus();
   setTimeout(function(){ w.print(); }, 400);
@@ -1879,5 +1881,7 @@ document.addEventListener("click", function(e){
     </div>
   </div>
 </div>
+
+<script>window.RADGOV_API_BASE="/api/index.php?r=";</script>
 </body>
 </html>
