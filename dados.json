@@ -1,0 +1,109 @@
+{
+  "noticias": [
+    {
+      "id": 1,
+      "titulo": "Portal da Transparência atualizado conforme Decisão Liminar do TJMG",
+      "categoria": "Transparência",
+      "data": "30/04/2025",
+      "status": "publicada",
+      "imagem": "#",
+      "resumo": "O Município de Vargem Grande do Rio Pardo cumpre as determinações da Ação Civil Pública nº 1000121-47.2026, disponibilizando informações completas de licitações, receitas e despesas.",
+      "autor": "Admin"
+    }
+  ],
+  "licitacoes": [
+    {
+      "id": 1,
+      "numero": "012/2025",
+      "objeto": "Aquisição de medicamentos — Farmácia Básica Municipal",
+      "modalidade": "Pregão Eletrônico",
+      "valor": "R$ 380.000",
+      "abertura": "15/05/2025",
+      "fase": "Em andamento",
+      "status": "aberto"
+    },
+    {
+      "id": 2,
+      "numero": "011/2025",
+      "objeto": "Reforma e ampliação do Ginásio Municipal João XXIII",
+      "modalidade": "Concorrência",
+      "valor": "R$ 920.000",
+      "abertura": "08/05/2025",
+      "fase": "Em julgamento",
+      "status": "julgamento"
+    }
+  ],
+  "diarias": [
+    {
+      "id": 1,
+      "beneficiario": "Carlos Eduardo Souza",
+      "cargo": "Secretário de Obras",
+      "destino": "Belo Horizonte",
+      "periodo": "22–24 Abr",
+      "diarias": 3,
+      "valor": "R$ 1.050,00",
+      "status": "publicada"
+    }
+  ],
+  "obras": [
+    {
+      "id": 1,
+      "nome": "Pavimentação Bairro Centro — Rua XV",
+      "secretaria": "Obras",
+      "valor": "R$ 280.000",
+      "inicio": "Abr 2025",
+      "progresso": 65,
+      "status": "andamento"
+    },
+    {
+      "id": 2,
+      "nome": "Reforma UBS Central",
+      "secretaria": "Saúde",
+      "valor": "R$ 145.000",
+      "inicio": "Mar 2025",
+      "progresso": 72,
+      "status": "andamento"
+    }
+  ],
+  "secretarias": [
+    {
+      "id": 1,
+      "nome": "Gabinete do Prefeito",
+      "responsavel": "Prefeito Municipal",
+      "endereco": "Praça XV de Novembro, s/n - Centro",
+      "telefone": "(38) 3847-1200",
+      "horario": "08h - 17h",
+      "competencias": "Coordenação administrativa e política municipal"
+    },
+    {
+      "id": 2,
+      "nome": "Secretaria de Saúde",
+      "responsavel": "Secretário de Saúde",
+      "endereco": "Rua da Saúde, 100",
+      "telefone": "(38) 3847-1210",
+      "horario": "08h - 17h",
+      "competencias": "Gestão da saúde pública municipal, coordenação das UBS, campanhas de vacinação"
+    }
+  ],
+  "faq": [
+    {
+      "id": 1,
+      "pergunta": "Como solicitar informações ao município via SIC?",
+      "resposta": "Qualquer pessoa pode protocolar um pedido sem necessidade de justificativa. O prazo de resposta é de 20 dias úteis."
+    },
+    {
+      "id": 2,
+      "pergunta": "Onde encontro receitas, despesas e remuneração de servidores?",
+      "resposta": "Os dados fiscais e de pessoal estão disponíveis no Portal da Transparência Federal e neste portal municipal."
+    }
+  ],
+  "config": {
+    "nome_prefeitura": "Vargem Grande do Rio Pardo",
+    "estado": "Minas Gerais",
+    "telefone": "(38) 3847-1200",
+    "email": "prefeitura@vargemgrande.mg.gov.br",
+    "endereco": "Praça XV de Novembro, s/n — Centro",
+    "cep": "39.454-000",
+    "cnpj": "19.851.397/0001-39"
+  }
+}
