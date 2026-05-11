@@ -12,6 +12,8 @@
     '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
   }[s]));
 
+  const noticiaUrl = (id) => `noticia.html?id=${encodeURIComponent(id)}`;
+
   const formatDate = (value) => {
     if (!value) return '';
     const date = new Date(String(value).replace(' ', 'T'));
@@ -34,7 +36,7 @@
       : '';
 
     grid.innerHTML = `
-      <a class="nfeat" href="#" data-noticia-id="${esc(destaque.id)}">
+      <a class="nfeat" href="${noticiaUrl(destaque.id)}" data-noticia-id="${esc(destaque.id)}">
         ${imgHtml}
         <div class="nbody">
           <div class="ndate">${esc(formatDate(destaque.data_publicacao))} · ${esc(destaque.categoria || 'Institucional')}</div>
@@ -44,7 +46,7 @@
       </a>
       <div class="nside">
         ${laterais.map((n) => `
-          <a class="nsm" href="#" data-noticia-id="${esc(n.id)}">
+          <a class="nsm" href="${noticiaUrl(n.id)}" data-noticia-id="${esc(n.id)}">
             <div class="nsmi">📰</div>
             <div class="nsmb">
               <div class="nsmdt">${esc(formatDate(n.data_publicacao))}</div>
