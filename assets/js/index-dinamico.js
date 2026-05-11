@@ -25,6 +25,25 @@
     style: 'currency', currency: 'BRL'
   });
 
+  function statusLabel(status) {
+    const map = {
+      aberto: 'Aberto',
+      em_andamento: 'Em andamento',
+      homologado: 'Homologado',
+      encerrado: 'Concluído',
+      cancelado: 'Cancelado'
+    };
+    return map[status] || status || 'Aberto';
+  }
+
+  function statusClass(status) {
+    if (status === 'homologado') return 'sp-ok';
+    if (status === 'encerrado') return 'sp-conc';
+    if (status === 'em_andamento') return 'sp-info';
+    if (status === 'cancelado') return 'sp-err';
+    return 'sp-ok';
+  }
+
   function renderNoticias(noticias) {
     const grid = document.querySelector('.ngrid');
     if (!grid || !Array.isArray(noticias) || noticias.length === 0) return;
@@ -88,22 +107,41 @@
     const table = tables.find((t) => /processo|objeto|modalidade/i.test(t.textContent));
     if (!table) return;
 
+    const thead = table.querySelector('thead');
+    if (thead) {
+      thead.innerHTML = `
+        <tr>
+          <th>Nº Processo</th>
+          <th>Objeto</th>
+          <th>Modalidade</th>
+          <th>Valor Est.</th>
+          <th>Abertura</th>
+          <th>Fase</th>
+          <th>Edital</th>
+        </tr>
+      `;
+    }
+
     let tbody = table.querySelector('tbody');
     if (!tbody) {
       tbody = document.createElement('tbody');
       table.appendChild(tbody);
     }
 
-    tbody.innerHTML = licitacoes.slice(0, 20).map((l) => `
-      <tr>
-        <td class="tc mono">${esc(l.processo)}</td>
-        <td>${esc(l.objeto)}</td>
-        <td>${esc(l.modalidade || '')}</td>
-        <td>${money(l.valor)}</td>
-        <td>${esc(formatDate(l.abertura))}</td>
-        <td><span class="sp sp-ok">${esc(l.status || 'aberto')}</span></td>
-      </tr>
-    `).join('') || '<tr><td colspan="6">Nenhuma licitação cadastrada no momento.</td></tr>';
+    tbody.innerHTML = licitacoes.slice(0, 50).map((l) => {
+      const pdf = l.documento || l.edital || '';
+      return `
+        <tr>
+          <td class="tc mono">${esc(l.processo)}</td>
+          <td>${esc(l.objeto)}</td>
+          <td>${esc(l.modalidade || '')}</td>
+          <td>${money(l.valor)}</td>
+          <td>${esc(formatDate(l.abertura))}</td>
+          <td><span class="sp ${statusClass(l.status)}">${esc(statusLabel(l.status))}</span></td>
+          <td>${pdf ? `<a href="${esc(pdf)}" target="_blank" rel="noopener" style="color:#1a7a1a;font-weight:900;text-decoration:none">📄 PDF</a>` : '<span style="color:#8a9a8a;font-size:11px">—</span>'}</td>
+        </tr>
+      `;
+    }).join('') || '<tr><td colspan="7">Nenhuma licitação cadastrada no momento.</td></tr>';
   }
 
   function updateCounters(noticias, obras, licitacoes) {
