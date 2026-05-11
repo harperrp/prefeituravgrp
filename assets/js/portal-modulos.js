@@ -13,18 +13,55 @@
 
   const date = (value) => {
     if (!value) return '';
+    const raw = String(value).slice(0, 10);
+    const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (m) return `${m[3]}/${m[2]}/${m[1]}`;
     const d = new Date(String(value).replace(' ', 'T'));
     return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString('pt-BR');
   };
 
-  function findPageByText(words) {
-    const pages = Array.from(document.querySelectorAll('.pg'));
-    return pages.find((page) => words.every((w) => page.textContent.toLowerCase().includes(w.toLowerCase())));
-  }
-
   function findTableByText(words) {
     const tables = Array.from(document.querySelectorAll('table'));
     return tables.find((table) => words.every((w) => table.textContent.toLowerCase().includes(w.toLowerCase())));
+  }
+
+  function tipoStyle(tipo) {
+    const t = String(tipo || '').toLowerCase();
+    if (t.includes('complement')) return 'color:#7c3aed;font-weight:900';
+    if (t.includes('decreto')) return 'color:#0969da;font-weight:900';
+    if (t.includes('portaria')) return 'color:#d97706;font-weight:900';
+    if (t.includes('resolu')) return 'color:#0f766e;font-weight:900';
+    return 'color:#0b7a20;font-weight:900';
+  }
+
+  function numeroStyle(tipo) {
+    const t = String(tipo || '').toLowerCase();
+    if (t.includes('complement')) return 'color:#7c3aed;font-weight:900';
+    if (t.includes('decreto')) return 'color:#0969da;font-weight:900';
+    if (t.includes('portaria')) return 'color:#d97706;font-weight:900';
+    if (t.includes('resolu')) return 'color:#0f766e;font-weight:900';
+    return 'color:#0b7a20;font-weight:900';
+  }
+
+  function situacaoBadge(situacao) {
+    const s = String(situacao || 'vigente').toLowerCase();
+    if (s.includes('revog')) return '<span class="sp" style="background:#fff3cd;color:#9a6700;border-radius:999px;padding:5px 12px;font-weight:900;font-size:12px">● Revogada</span>';
+    if (s.includes('alter')) return '<span class="sp" style="background:#ffe3e3;color:#c92a2a;border-radius:999px;padding:5px 12px;font-weight:900;font-size:12px">● Alterada</span>';
+    return '<span class="sp" style="background:#d9f8d9;color:#08720b;border-radius:999px;padding:5px 12px;font-weight:900;font-size:12px">● Vigente</span>';
+  }
+
+  function ensureLegStyle() {
+    if (document.getElementById('leg-table-polish')) return;
+    const style = document.createElement('style');
+    style.id = 'leg-table-polish';
+    style.textContent = `
+      .leg-ver-btn{display:inline-flex;align-items:center;gap:7px;background:#075d08;color:#fff!important;border-radius:7px;padding:10px 15px;font-weight:900;text-decoration:none;border:0;cursor:pointer;line-height:1;box-shadow:0 6px 14px rgba(7,93,8,.12)}
+      .leg-ver-btn:hover{background:#08720b;transform:translateY(-1px)}
+      .leg-table-polida tbody tr td{vertical-align:middle}
+      .leg-table-polida tbody tr:hover{background:#f7fbf7}
+      .leg-ementa-cell{line-height:1.45;color:#324532;max-width:680px}
+    `;
+    document.head.appendChild(style);
   }
 
   async function renderSecretarias() {
@@ -60,14 +97,33 @@
       const tbody = table?.querySelector('tbody');
       if (!tbody) return;
 
+      ensureLegStyle();
+      table.classList.add('leg-table-polida');
+
+      const thead = table.querySelector('thead');
+      if (thead) {
+        thead.innerHTML = `
+          <tr>
+            <th>Número</th>
+            <th>Tipo</th>
+            <th>Data</th>
+            <th>Ementa</th>
+            <th>Situação</th>
+            <th>Texto</th>
+          </tr>
+        `;
+      }
+
       tbody.innerHTML = items.map((l) => `
-        <tr>
-          <td class="tc mono">${esc(l.numero)}</td>
-          <td><strong>${esc(l.tipo)}</strong></td>
-          <td>${esc(date(l.data_publicacao))}</td>
-          <td>${esc(l.ementa)}</td>
-          <td><span class="sp sp-ok">${esc(l.situacao || 'vigente')}</span></td>
-          <td>${l.arquivo ? `<a class="btn btn-sm" href="${esc(l.arquivo)}" target="_blank">Ver Lei</a>` : '<span class="sp sp-info">Texto</span>'}</td>
+        <tr data-leg-row="${esc(l.id)}">
+          <td class="tc mono" style="${numeroStyle(l.tipo)}">${esc(l.numero)}</td>
+          <td style="${tipoStyle(l.tipo)}">${esc(l.tipo)}</td>
+          <td style="white-space:nowrap;color:#536653">${esc(date(l.data_publicacao))}</td>
+          <td class="leg-ementa-cell">${esc(l.ementa)}</td>
+          <td style="white-space:nowrap">${situacaoBadge(l.situacao)}</td>
+          <td style="white-space:nowrap">
+            <button type="button" class="leg-ver-btn" data-leg-view="${esc(l.id)}">📄 Ver Lei</button>
+          </td>
         </tr>
       `).join('') || '<tr><td colspan="6">Nenhum instrumento normativo cadastrado.</td></tr>';
     } catch (error) {
@@ -152,13 +208,9 @@
     };
     const target = aliases[hash] || hash || 'inicio';
 
-    const navLinks = Array.from(document.querySelectorAll('.mnl a, .tbn a, .hchip, .mod, .st'));
     const pages = Array.from(document.querySelectorAll('.pg'));
-
     let page = document.getElementById(target) || document.querySelector(`[data-page="${target}"]`);
-    if (!page) {
-      page = pages.find((p) => p.id && p.id.toLowerCase() === target);
-    }
+    if (!page) page = pages.find((p) => p.id && p.id.toLowerCase() === target);
     if (!page) return;
 
     pages.forEach((p) => p.classList.remove('act'));
