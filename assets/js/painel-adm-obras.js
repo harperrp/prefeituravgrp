@@ -10,6 +10,12 @@
   const norm = (txt) => String(txt || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
   const esc = (value) => String(value ?? '').replace(/[&<>'"]/g, (s) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[s]));
   const money = (value) => Number(value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const mesAno = (value) => {
+    if (!value) return '—';
+    const d = new Date(String(value).replace(' ', 'T'));
+    if (Number.isNaN(d.getTime())) return value;
+    return d.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).replace('.', '');
+  };
 
   function toast(text, type = 'ok') {
     let el = document.getElementById('painel-api-toast');
@@ -54,7 +60,6 @@
         if (field) return field;
       }
     }
-
     return Array.from(container.querySelectorAll(selector)).find((field) => {
       const combined = norm(`${field.name || ''} ${field.id || ''} ${field.placeholder || ''} ${field.getAttribute('aria-label') || ''}`);
       return labels.some((l) => combined.includes(norm(l)));
@@ -126,24 +131,20 @@
   async function saveFromModal() {
     const modal = findObraModal();
     if (!modal) return false;
-
     try {
       const data = getData(modal);
       if (!data.nome.trim()) {
         toast('Informe o nome da obra.', 'err');
         return true;
       }
-
       data.imagem = await uploadImagem(modal);
       await API.obras.salvar(data);
       toast(state.editingId ? 'Obra atualizada com sucesso.' : 'Obra cadastrada com sucesso.');
       state.editingId = 0;
       state.editingImagem = '';
-      await renderPainelList();
-
+      await renderPainelList(true);
       const close = modal.querySelector('.md-x, .close, [data-close]');
-      if (close) close.click();
-      else modal.classList.remove('open');
+      if (close) close.click(); else modal.classList.remove('open');
       return true;
     } catch (error) {
       toast(error.message || 'Erro ao salvar obra.', 'err');
@@ -151,16 +152,22 @@
     }
   }
 
+  function isObrasPageActive() {
+    const txt = norm(document.body.textContent);
+    return txt.includes('obras publicas') || txt.includes('obras públicas') || location.hash.includes('obras');
+  }
+
   function findObrasTableBody() {
-    const tables = Array.from(document.querySelectorAll('table'));
-    const table = tables.find((t) => /obra|progresso|execu|secretaria/i.test(t.textContent));
+    const tables = Array.from(document.querySelectorAll('table')).filter((t) => visible(t));
+    let table = tables.find((t) => /obras cadastradas|progresso|secretaria|ações|acoes/i.test(t.textContent));
+    if (!table) table = tables.find((t) => /obra|progresso|execu|secretaria/i.test(t.textContent));
     return table?.querySelector('tbody') || null;
   }
 
   function findNewObraButton() {
     return Array.from(document.querySelectorAll('button, .btn, [role="button"]')).find((btn) => {
       const t = norm(btn.textContent);
-      return t.includes('nova obra') || t.includes('adicionar obra') || t.includes('nova');
+      return t.includes('nova obra') || t.includes('adicionar obra') || (isObrasPageActive() && t.includes('nova'));
     });
   }
 
@@ -177,7 +184,6 @@
     if (!modal) return;
     const title = modal.querySelector('h1,h2,h3,.md-title,.modal-title');
     if (title && norm(title.textContent).includes('nova')) title.textContent = 'EDITAR OBRA PÚBLICA';
-
     setField(modal, ['nome da obra', 'titulo', 'título', 'nome'], item.nome || '');
     setField(modal, ['secretaria'], item.secretaria || '', 'select, input');
     setField(modal, ['descricao', 'descrição', 'objeto'], item.descricao || '', 'textarea, input');
@@ -187,17 +193,6 @@
     setField(modal, ['progresso', 'execucao', 'execução'], item.progresso || 0, 'input, select');
     setField(modal, ['status'], item.status || 'em_andamento', 'select, input');
     setField(modal, ['localizacao', 'localização', 'endereco', 'endereço'], item.localizacao || '', 'input, textarea');
-
-    if (item.imagem && !modal.querySelector('#obraImagemAtualInfo')) {
-      const file = Array.from(modal.querySelectorAll('input[type="file"]'))[0];
-      if (file) {
-        const info = document.createElement('div');
-        info.id = 'obraImagemAtualInfo';
-        info.style.cssText = 'font-size:12px;color:#8fbf8f;margin-top:6px;font-weight:700';
-        info.innerHTML = `Imagem atual: <a href="${esc(item.imagem)}" target="_blank" style="color:#2ecc40">abrir imagem</a>. Envie nova apenas se quiser substituir.`;
-        file.insertAdjacentElement('afterend', info);
-      }
-    }
   }
 
   async function updateStatus(id, status) {
@@ -206,10 +201,8 @@
     try {
       await API.obras.salvar({ ...item, status });
       toast('Status da obra atualizado.');
-      await renderPainelList();
-    } catch (error) {
-      toast(error.message || 'Erro ao atualizar status.', 'err');
-    }
+      await renderPainelList(true);
+    } catch (error) { toast(error.message || 'Erro ao atualizar status.', 'err'); }
   }
 
   async function updateProgress(id, progresso) {
@@ -218,10 +211,8 @@
     try {
       await API.obras.salvar({ ...item, progresso });
       toast('Progresso atualizado.');
-      await renderPainelList();
-    } catch (error) {
-      toast(error.message || 'Erro ao atualizar progresso.', 'err');
-    }
+      await renderPainelList(true);
+    } catch (error) { toast(error.message || 'Erro ao atualizar progresso.', 'err'); }
   }
 
   async function deleteObra(id) {
@@ -231,106 +222,79 @@
     try {
       await API.obras.excluir(id);
       toast('Obra excluída com sucesso.');
-      await renderPainelList();
-    } catch (error) {
-      toast(error.message || 'Erro ao excluir obra.', 'err');
-    }
+      await renderPainelList(true);
+    } catch (error) { toast(error.message || 'Erro ao excluir obra.', 'err'); }
   }
 
-  async function renderPainelList() {
+  async function renderPainelList(force = false) {
     try {
+      if (!force && !isObrasPageActive()) return;
       const res = await API.obras.listar();
       state.items = res.data || [];
       const tbody = findObrasTableBody();
       if (!tbody) return;
-
       tbody.innerHTML = state.items.map((o) => {
         const progresso = Math.max(0, Math.min(100, Number(o.progresso || 0)));
         return `
           <tr data-api-obra-id="${esc(o.id)}">
-            <td><strong>${esc(o.nome)}</strong><br><small>${esc(o.localizacao || '')}</small></td>
+            <td><strong>${esc(o.nome)}</strong><br><small>${esc(o.localizacao || o.descricao || '')}</small></td>
             <td>${esc(o.secretaria || '')}</td>
             <td>${money(o.valor)}</td>
+            <td>${esc(mesAno(o.inicio))}</td>
             <td>
-              <div style="display:flex;align-items:center;gap:8px;min-width:130px">
-                <input data-obra-progresso="${esc(o.id)}" type="number" min="0" max="100" value="${progresso}" style="width:68px;background:#111a11;color:#dff5df;border:1px solid #244024;border-radius:7px;padding:7px;font-weight:700"> <span>%</span>
+              <div style="display:flex;align-items:center;gap:8px;min-width:150px">
+                <div style="height:4px;background:#1d2b1d;border-radius:10px;flex:1;overflow:hidden"><div style="height:100%;width:${progresso}%;background:${progresso >= 100 ? '#2ecc40' : progresso > 60 ? '#f5c518' : '#388bfd'}"></div></div>
+                <input data-obra-progresso="${esc(o.id)}" type="number" min="0" max="100" value="${progresso}" style="width:58px;background:#111a11;color:#dff5df;border:1px solid #244024;border-radius:7px;padding:6px;font-weight:700">%
               </div>
             </td>
             <td><span class="sp ${statusClass(o.status)}">${esc(statusLabel(o.status))}</span></td>
             <td>
               <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
                 ${o.imagem ? `<a class="btn btn-sm" href="${esc(o.imagem)}" target="_blank">🖼 Imagem</a>` : ''}
-                <button class="btn btn-sm" data-obra-edit="${esc(o.id)}">✏️ Editar</button>
+                <button class="btn btn-sm" data-obra-edit="${esc(o.id)}">✏️</button>
                 <select data-obra-status="${esc(o.id)}" style="background:#111a11;color:#dff5df;border:1px solid #244024;border-radius:7px;padding:7px;font-weight:700">
                   <option value="planejada" ${o.status === 'planejada' ? 'selected' : ''}>Planejada</option>
                   <option value="em_andamento" ${o.status === 'em_andamento' ? 'selected' : ''}>Em andamento</option>
                   <option value="concluida" ${o.status === 'concluida' ? 'selected' : ''}>Concluída</option>
                   <option value="paralisada" ${o.status === 'paralisada' ? 'selected' : ''}>Paralisada</option>
                 </select>
-                <button class="btn btn-sm" data-obra-delete="${esc(o.id)}" style="background:rgba(248,81,73,.14);color:#ffb8b8;border:1px solid rgba(248,81,73,.35);border-radius:7px;padding:7px 10px;font-weight:800;cursor:pointer">🗑 Excluir</button>
+                <button class="btn btn-sm" data-obra-delete="${esc(o.id)}" style="background:rgba(248,81,73,.14);color:#ffb8b8;border:1px solid rgba(248,81,73,.35);border-radius:7px;padding:7px 10px;font-weight:800;cursor:pointer">🗑</button>
               </div>
             </td>
-          </tr>
-        `;
-      }).join('') || '<tr><td colspan="6">Nenhuma obra cadastrada.</td></tr>';
-    } catch (error) {
-      console.warn('Erro ao carregar obras no painel:', error);
-    }
+          </tr>`;
+      }).join('') || '<tr><td colspan="7">Nenhuma obra cadastrada.</td></tr>';
+    } catch (error) { console.warn('Erro ao carregar obras no painel:', error); }
   }
 
   function bindEvents() {
     document.addEventListener('click', async (event) => {
-      const btn = event.target.closest('button, .btn, [role="button"]');
+      const btn = event.target.closest('button, .btn, [role="button"], a');
       if (!btn) return;
-
+      setTimeout(() => renderPainelList(false), 250);
+      setTimeout(() => renderPainelList(false), 900);
       const editId = btn.getAttribute('data-obra-edit');
-      if (editId) {
-        event.preventDefault();
-        event.stopPropagation();
-        const item = state.items.find((x) => Number(x.id) === Number(editId));
-        if (item) openEditModal(item);
-        return;
-      }
-
+      if (editId) { event.preventDefault(); event.stopPropagation(); const item = state.items.find((x) => Number(x.id) === Number(editId)); if (item) openEditModal(item); return; }
       const delId = btn.getAttribute('data-obra-delete');
-      if (delId) {
-        event.preventDefault();
-        event.stopPropagation();
-        await deleteObra(delId);
-        return;
-      }
-
+      if (delId) { event.preventDefault(); event.stopPropagation(); await deleteObra(delId); return; }
       const modal = findObraModal();
       const text = norm(btn.textContent);
-      if (modal && modal.contains(btn) && (text.includes('publicar') || text.includes('salvar') || text.includes('cadastrar'))) {
-        event.preventDefault();
-        event.stopPropagation();
-        await saveFromModal();
-      }
-
-      if (text.includes('nova obra') || text.includes('adicionar obra')) {
-        state.editingId = 0;
-        state.editingImagem = '';
-      }
+      if (modal && modal.contains(btn) && (text.includes('publicar') || text.includes('salvar') || text.includes('cadastrar'))) { event.preventDefault(); event.stopPropagation(); await saveFromModal(); }
+      if (text.includes('nova obra') || text.includes('adicionar obra')) { state.editingId = 0; state.editingImagem = ''; }
     }, true);
 
     document.addEventListener('change', async (event) => {
       const status = event.target.closest('select[data-obra-status]');
-      if (status) {
-        await updateStatus(status.getAttribute('data-obra-status'), status.value);
-        return;
-      }
+      if (status) { await updateStatus(status.getAttribute('data-obra-status'), status.value); return; }
       const progresso = event.target.closest('input[data-obra-progresso]');
-      if (progresso) {
-        await updateProgress(progresso.getAttribute('data-obra-progresso'), progresso.value);
-      }
+      if (progresso) await updateProgress(progresso.getAttribute('data-obra-progresso'), progresso.value);
     }, true);
   }
 
   function init() {
     bindEvents();
-    renderPainelList();
-    window.addEventListener('painel-auth-ok', renderPainelList);
+    setTimeout(() => renderPainelList(false), 300);
+    setInterval(() => { if (isObrasPageActive()) renderPainelList(false); }, 5000);
+    window.addEventListener('painel-auth-ok', () => renderPainelList(false));
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
