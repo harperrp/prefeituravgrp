@@ -36,6 +36,21 @@ window.PrefeituraAPI = {
     },
   },
 
+  categorias: {
+    listar(tipo = 'noticia') {
+      return PrefeituraAPI.request(`/api/categorias.php?tipo=${encodeURIComponent(tipo)}`);
+    },
+    salvar(dados) {
+      return PrefeituraAPI.request('/api/categorias.php', {
+        method: 'POST',
+        body: JSON.stringify(dados),
+      });
+    },
+    excluir(id) {
+      return PrefeituraAPI.request(`/api/categorias.php?id=${id}`, { method: 'DELETE' });
+    },
+  },
+
   noticias: {
     listar(publico = false, limit = 20) {
       return PrefeituraAPI.request(`/api/noticias.php?limit=${limit}${publico ? '&public=1' : ''}`);
