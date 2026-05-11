@@ -37,126 +37,71 @@ window.PrefeituraAPI = {
   },
 
   categorias: {
-    listar(tipo = 'noticia') {
-      return PrefeituraAPI.request(`/api/categorias.php?tipo=${encodeURIComponent(tipo)}`);
-    },
-    salvar(dados) {
-      return PrefeituraAPI.request('/api/categorias.php', {
-        method: 'POST',
-        body: JSON.stringify(dados),
-      });
-    },
-    excluir(id) {
-      return PrefeituraAPI.request(`/api/categorias.php?id=${id}`, { method: 'DELETE' });
-    },
+    listar(tipo = 'noticia') { return PrefeituraAPI.request(`/api/categorias.php?tipo=${encodeURIComponent(tipo)}`); },
+    salvar(dados) { return PrefeituraAPI.request('/api/categorias.php', { method: 'POST', body: JSON.stringify(dados) }); },
+    excluir(id) { return PrefeituraAPI.request(`/api/categorias.php?id=${id}`, { method: 'DELETE' }); },
   },
 
   noticias: {
-    listar(publico = false, limit = 20) {
-      return PrefeituraAPI.request(`/api/noticias.php?limit=${limit}${publico ? '&public=1' : ''}`);
-    },
-    salvar(dados) {
-      return PrefeituraAPI.request('/api/noticias.php', {
-        method: 'POST',
-        body: JSON.stringify(dados),
-      });
-    },
-    excluir(id) {
-      return PrefeituraAPI.request(`/api/noticias.php?id=${id}`, { method: 'DELETE' });
-    },
+    listar(publico = false, limit = 20) { return PrefeituraAPI.request(`/api/noticias.php?limit=${limit}${publico ? '&public=1' : ''}`); },
+    salvar(dados) { return PrefeituraAPI.request('/api/noticias.php', { method: 'POST', body: JSON.stringify(dados) }); },
+    excluir(id) { return PrefeituraAPI.request(`/api/noticias.php?id=${id}`, { method: 'DELETE' }); },
   },
 
   obras: {
-    listar() {
-      return PrefeituraAPI.request('/api/obras.php');
-    },
-    salvar(dados) {
-      return PrefeituraAPI.request('/api/obras.php', {
-        method: 'POST',
-        body: JSON.stringify(dados),
-      });
-    },
-    excluir(id) {
-      return PrefeituraAPI.request(`/api/obras.php?id=${id}`, { method: 'DELETE' });
-    },
+    listar() { return PrefeituraAPI.request('/api/obras.php'); },
+    salvar(dados) { return PrefeituraAPI.request('/api/obras.php', { method: 'POST', body: JSON.stringify(dados) }); },
+    excluir(id) { return PrefeituraAPI.request(`/api/obras.php?id=${id}`, { method: 'DELETE' }); },
   },
 
   licitacoes: {
-    listar() {
-      return PrefeituraAPI.request('/api/licitacoes.php');
-    },
-    salvar(dados) {
-      return PrefeituraAPI.request('/api/licitacoes.php', {
-        method: 'POST',
-        body: JSON.stringify(dados),
-      });
-    },
-    excluir(id) {
-      return PrefeituraAPI.request(`/api/licitacoes.php?id=${id}`, { method: 'DELETE' });
-    },
+    listar() { return PrefeituraAPI.request('/api/licitacoes.php'); },
+    salvar(dados) { return PrefeituraAPI.request('/api/licitacoes.php', { method: 'POST', body: JSON.stringify(dados) }); },
+    excluir(id) { return PrefeituraAPI.request(`/api/licitacoes.php?id=${id}`, { method: 'DELETE' }); },
   },
 
   secretarias: {
-    listar() {
-      return PrefeituraAPI.request('/api/secretarias.php');
-    },
-    salvar(dados) {
-      return PrefeituraAPI.request('/api/secretarias.php', { method: 'POST', body: JSON.stringify(dados) });
-    },
-    excluir(id) {
-      return PrefeituraAPI.request(`/api/secretarias.php?id=${id}`, { method: 'DELETE' });
-    },
+    listar() { return PrefeituraAPI.request('/api/secretarias.php'); },
+    salvar(dados) { return PrefeituraAPI.request('/api/secretarias.php', { method: 'POST', body: JSON.stringify(dados) }); },
+    excluir(id) { return PrefeituraAPI.request(`/api/secretarias.php?id=${id}`, { method: 'DELETE' }); },
   },
 
   legislacao: {
-    listar(publico = true) {
-      return PrefeituraAPI.request(`/api/legislacao.php${publico ? '?public=1' : '?public=0'}`);
-    },
-    salvar(dados) {
-      return PrefeituraAPI.request('/api/legislacao.php', { method: 'POST', body: JSON.stringify(dados) });
-    },
-    excluir(id) {
-      return PrefeituraAPI.request(`/api/legislacao.php?id=${id}`, { method: 'DELETE' });
-    },
+    listar(publico = true) { return PrefeituraAPI.request(`/api/legislacao.php${publico ? '?public=1' : '?public=0'}`); },
+    salvar(dados) { return PrefeituraAPI.request('/api/legislacao.php', { method: 'POST', body: JSON.stringify(dados) }); },
+    excluir(id) { return PrefeituraAPI.request(`/api/legislacao.php?id=${id}`, { method: 'DELETE' }); },
   },
 
   diarias: {
-    listar(publico = true) {
-      return PrefeituraAPI.request(`/api/diarias.php${publico ? '?public=1' : '?public=0'}`);
-    },
-    salvar(dados) {
-      return PrefeituraAPI.request('/api/diarias.php', { method: 'POST', body: JSON.stringify(dados) });
-    },
-    excluir(id) {
-      return PrefeituraAPI.request(`/api/diarias.php?id=${id}`, { method: 'DELETE' });
-    },
+    listar(publico = true) { return PrefeituraAPI.request(`/api/diarias.php${publico ? '?public=1' : '?public=0'}`); },
+    salvar(dados) { return PrefeituraAPI.request('/api/diarias.php', { method: 'POST', body: JSON.stringify(dados) }); },
+    excluir(id) { return PrefeituraAPI.request(`/api/diarias.php?id=${id}`, { method: 'DELETE' }); },
   },
 
   emendas: {
-    listar(publico = true) {
-      return PrefeituraAPI.request(`/api/emendas.php${publico ? '?public=1' : '?public=0'}`);
-    },
-    salvar(dados) {
-      return PrefeituraAPI.request('/api/emendas.php', { method: 'POST', body: JSON.stringify(dados) });
-    },
-    excluir(id) {
-      return PrefeituraAPI.request(`/api/emendas.php?id=${id}`, { method: 'DELETE' });
-    },
+    listar(publico = true) { return PrefeituraAPI.request(`/api/emendas.php${publico ? '?public=1' : '?public=0'}`); },
+    salvar(dados) { return PrefeituraAPI.request('/api/emendas.php', { method: 'POST', body: JSON.stringify(dados) }); },
+    excluir(id) { return PrefeituraAPI.request(`/api/emendas.php?id=${id}`, { method: 'DELETE' }); },
   },
 
   integracoes: {
-    listar(tipo = 'emendas') {
-      return PrefeituraAPI.request(`/api/integracoes.php?tipo=${encodeURIComponent(tipo)}`);
+    listar(tipo = 'emendas') { return PrefeituraAPI.request(`/api/integracoes.php?tipo=${encodeURIComponent(tipo)}`); },
+    salvar(dados) { return PrefeituraAPI.request('/api/integracoes.php', { method: 'POST', body: JSON.stringify(dados) }); },
+    testar(id) { return PrefeituraAPI.request(`/api/integracoes.php?action=testar&id=${encodeURIComponent(id)}`, { method: 'POST', body: '{}' }); },
+    sincronizar(id) { return PrefeituraAPI.request(`/api/integracoes.php?action=sincronizar&id=${encodeURIComponent(id)}`, { method: 'POST', body: '{}' }); },
+  },
+
+  ouvidoria: {
+    listar(tipo = '', status = '') {
+      const qs = new URLSearchParams();
+      if (tipo) qs.set('tipo', tipo);
+      if (status) qs.set('status', status);
+      return PrefeituraAPI.request(`/api/ouvidoria.php${qs.toString() ? '?' + qs.toString() : ''}`);
     },
-    salvar(dados) {
-      return PrefeituraAPI.request('/api/integracoes.php', { method: 'POST', body: JSON.stringify(dados) });
-    },
-    testar(id) {
-      return PrefeituraAPI.request(`/api/integracoes.php?action=testar&id=${encodeURIComponent(id)}`, { method: 'POST', body: '{}' });
-    },
-    sincronizar(id) {
-      return PrefeituraAPI.request(`/api/integracoes.php?action=sincronizar&id=${encodeURIComponent(id)}`, { method: 'POST', body: '{}' });
-    },
+    consultar(protocolo) { return PrefeituraAPI.request(`/api/ouvidoria.php?protocolo=${encodeURIComponent(protocolo)}`); },
+    enviar(dados) { return PrefeituraAPI.request('/api/ouvidoria.php', { method: 'POST', body: JSON.stringify(dados) }); },
+    responder(dados) { return PrefeituraAPI.request('/api/ouvidoria.php', { method: 'POST', body: JSON.stringify(dados) }); },
+    excluir(id) { return PrefeituraAPI.request(`/api/ouvidoria.php?id=${id}`, { method: 'DELETE' }); },
   },
 
   async upload(file, tipo = 'geral') {
