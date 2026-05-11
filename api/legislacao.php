@@ -5,6 +5,13 @@ try {
     $pdo = db();
 
     if (method() === 'GET') {
+        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        if ($id > 0) {
+            $stmt = $pdo->prepare('SELECT * FROM legislacao WHERE id = ? LIMIT 1');
+            $stmt->execute([$id]);
+            json_response(['success' => true, 'data' => $stmt->fetch()]);
+        }
+
         $publicOnly = ($_GET['public'] ?? '1') === '1';
         $sql = 'SELECT * FROM legislacao';
         if ($publicOnly) $sql .= " WHERE status = 'publicado'";
@@ -29,16 +36,18 @@ try {
         $data = !empty($input['data_publicacao']) ? $input['data_publicacao'] : null;
         $situacao = in_array(($input['situacao'] ?? 'vigente'), ['vigente','revogada','alterada'], true) ? $input['situacao'] : 'vigente';
         $arquivo = trim((string)($input['arquivo'] ?? ''));
+        $vinculacoes = trim((string)($input['vinculacoes'] ?? ''));
+        $texto = (string)($input['texto'] ?? '');
         $status = in_array(($input['status'] ?? 'publicado'), ['publicado','rascunho','arquivado'], true) ? $input['status'] : 'publicado';
 
         if ($id > 0) {
-            $stmt = $pdo->prepare('UPDATE legislacao SET numero=?, tipo=?, data_publicacao=?, ementa=?, situacao=?, arquivo=?, status=? WHERE id=?');
-            $stmt->execute([$numero,$tipo,$data,$ementa,$situacao,$arquivo,$status,$id]);
+            $stmt = $pdo->prepare('UPDATE legislacao SET numero=?, tipo=?, data_publicacao=?, ementa=?, situacao=?, vinculacoes=?, texto=?, arquivo=?, status=? WHERE id=?');
+            $stmt->execute([$numero,$tipo,$data,$ementa,$situacao,$vinculacoes,$texto,$arquivo,$status,$id]);
             json_response(['success'=>true,'id'=>$id,'message'=>'Legislação atualizada.']);
         }
 
-        $stmt = $pdo->prepare('INSERT INTO legislacao (numero,tipo,data_publicacao,ementa,situacao,arquivo,status) VALUES (?,?,?,?,?,?,?)');
-        $stmt->execute([$numero,$tipo,$data,$ementa,$situacao,$arquivo,$status]);
+        $stmt = $pdo->prepare('INSERT INTO legislacao (numero,tipo,data_publicacao,ementa,situacao,vinculacoes,texto,arquivo,status) VALUES (?,?,?,?,?,?,?,?,?)');
+        $stmt->execute([$numero,$tipo,$data,$ementa,$situacao,$vinculacoes,$texto,$arquivo,$status]);
         json_response(['success'=>true,'id'=>(int)$pdo->lastInsertId(),'message'=>'Legislação cadastrada.']);
     }
 
