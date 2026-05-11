@@ -144,6 +144,21 @@ window.PrefeituraAPI = {
     },
   },
 
+  integracoes: {
+    listar(tipo = 'emendas') {
+      return PrefeituraAPI.request(`/api/integracoes.php?tipo=${encodeURIComponent(tipo)}`);
+    },
+    salvar(dados) {
+      return PrefeituraAPI.request('/api/integracoes.php', { method: 'POST', body: JSON.stringify(dados) });
+    },
+    testar(id) {
+      return PrefeituraAPI.request(`/api/integracoes.php?action=testar&id=${encodeURIComponent(id)}`, { method: 'POST', body: '{}' });
+    },
+    sincronizar(id) {
+      return PrefeituraAPI.request(`/api/integracoes.php?action=sincronizar&id=${encodeURIComponent(id)}`, { method: 'POST', body: '{}' });
+    },
+  },
+
   async upload(file, tipo = 'geral') {
     const form = new FormData();
     form.append('arquivo', file);
