@@ -28,12 +28,14 @@ window.PrefeituraAPI = {
         body: JSON.stringify({ email, senha }),
       });
     },
-    logout() {
-      return PrefeituraAPI.request('/api/auth.php?action=logout', { method: 'POST' });
-    },
-    me() {
-      return PrefeituraAPI.request('/api/auth.php?action=me');
-    },
+    logout() { return PrefeituraAPI.request('/api/auth.php?action=logout', { method: 'POST' }); },
+    me() { return PrefeituraAPI.request('/api/auth.php?action=me'); },
+  },
+
+  usuarios: {
+    listar() { return PrefeituraAPI.request('/api/usuarios.php'); },
+    salvar(dados) { return PrefeituraAPI.request('/api/usuarios.php', { method: 'POST', body: JSON.stringify(dados) }); },
+    excluir(id) { return PrefeituraAPI.request(`/api/usuarios.php?id=${id}`, { method: 'DELETE' }); },
   },
 
   categorias: {
@@ -109,16 +111,9 @@ window.PrefeituraAPI = {
     form.append('arquivo', file);
     form.append('tipo', tipo);
 
-    const res = await fetch('/api/upload.php', {
-      method: 'POST',
-      credentials: 'same-origin',
-      body: form,
-    });
-
+    const res = await fetch('/api/upload.php', { method: 'POST', credentials: 'same-origin', body: form });
     const data = await res.json().catch(() => ({ success: false, message: 'Resposta inválida do servidor.' }));
-    if (!res.ok || data.success === false) {
-      throw new Error(data.message || 'Erro no upload.');
-    }
+    if (!res.ok || data.success === false) throw new Error(data.message || 'Erro no upload.');
     return data;
   },
 };
