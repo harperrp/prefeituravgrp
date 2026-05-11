@@ -8,8 +8,8 @@ session_start();
 
 define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
 define('DB_NAME', getenv('DB_NAME') ?: 'prefeitura_vgrp');
-define('DB_USER', getenv('DB_USER') ?: 'SEU_USUARIO_DO_BANCO');
-define('DB_PASS', getenv('DB_PASS') ?: 'SUA_SENHA_DO_BANCO');
+define('DB_USER', getenv('DB_USER') ?: 'user_vgrp');
+define('DB_PASS', getenv('DB_PASS') ?: 'Vargemgrande@2026');
 define('DB_CHARSET', 'utf8mb4');
 
 define('UPLOAD_BASE_DIR', dirname(__DIR__) . '/uploads');
