@@ -22,12 +22,7 @@ window.PrefeituraAPI = {
   },
 
   auth: {
-    login(email, senha) {
-      return PrefeituraAPI.request('/api/auth.php?action=login', {
-        method: 'POST',
-        body: JSON.stringify({ email, senha }),
-      });
-    },
+    login(email, senha) { return PrefeituraAPI.request('/api/auth.php?action=login', { method: 'POST', body: JSON.stringify({ email, senha }) }); },
     logout() { return PrefeituraAPI.request('/api/auth.php?action=logout', { method: 'POST' }); },
     me() { return PrefeituraAPI.request('/api/auth.php?action=me'); },
   },
@@ -86,6 +81,18 @@ window.PrefeituraAPI = {
     excluir(id) { return PrefeituraAPI.request(`/api/emendas.php?id=${id}`, { method: 'DELETE' }); },
   },
 
+  concursos: {
+    listar(publico = true) { return PrefeituraAPI.request(`/api/concursos.php${publico ? '?public=1' : ''}`); },
+    salvar(dados) { return PrefeituraAPI.request('/api/concursos.php', { method: 'POST', body: JSON.stringify(dados) }); },
+    excluir(id) { return PrefeituraAPI.request(`/api/concursos.php?id=${id}`, { method: 'DELETE' }); },
+  },
+
+  paginas: {
+    listar(pagina, publico = true) { return PrefeituraAPI.request(`/api/paginas.php?pagina=${encodeURIComponent(pagina)}${publico ? '&public=1' : ''}`); },
+    salvar(dados) { return PrefeituraAPI.request('/api/paginas.php', { method: 'POST', body: JSON.stringify(dados) }); },
+    excluir(id) { return PrefeituraAPI.request(`/api/paginas.php?id=${id}`, { method: 'DELETE' }); },
+  },
+
   integracoes: {
     listar(tipo = 'emendas') { return PrefeituraAPI.request(`/api/integracoes.php?tipo=${encodeURIComponent(tipo)}`); },
     salvar(dados) { return PrefeituraAPI.request('/api/integracoes.php', { method: 'POST', body: JSON.stringify(dados) }); },
@@ -110,7 +117,6 @@ window.PrefeituraAPI = {
     const form = new FormData();
     form.append('arquivo', file);
     form.append('tipo', tipo);
-
     const res = await fetch('/api/upload.php', { method: 'POST', credentials: 'same-origin', body: form });
     const data = await res.json().catch(() => ({ success: false, message: 'Resposta inválida do servidor.' }));
     if (!res.ok || data.success === false) throw new Error(data.message || 'Erro no upload.');
