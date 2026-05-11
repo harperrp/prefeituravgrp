@@ -1,5 +1,5 @@
 // Configuração operacional das APIs/portais de Emendas no painel ADM.
-// Ativa os cards de Emendas (APIs Gov): configurar, testar e sincronizar.
+// Ativa os cards existentes de Emendas (APIs Gov): editar, testar e sincronizar.
 
 (function () {
   const API = window.PrefeituraAPI;
@@ -9,6 +9,14 @@
 
   const esc = (value) => String(value ?? '').replace(/[&<>'"]/g, (s) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[s]));
   const norm = (txt) => String(txt || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+
+  const cardMatchers = {
+    emendas_pix_federal: ['emendas pix', 'pix federal', 'portal federal', 'api.portaldatransparencia'],
+    saude_fns: ['saude', 'saúde', 'fns', 'opendatasus'],
+    estaduais_mg: ['estaduais', 'mg', 'portal mg', 'transparencia.mg'],
+    assist_social_mds: ['assist', 'social', 'mds', 'aplicacoes.mds'],
+    convenios_transferegov: ['convenios', 'convênios', 'transferegov', 'api.transferegov']
+  };
 
   function visible(el) {
     if (!el) return false;
@@ -50,7 +58,8 @@
       .api-config-modal{width:min(760px,96vw);max-height:90vh;overflow:auto;background:#0d1a0d;border:1px solid #234523;border-radius:14px;box-shadow:0 28px 90px rgba(0,0,0,.55);color:#e8f5e8}
       .api-config-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:22px 24px;border-bottom:1px solid rgba(255,255,255,.08)}
       .api-config-head h3{margin:0;font:900 24px Sora,Arial;color:#fff;letter-spacing:.04em}.api-config-head p{margin:8px 0 0;color:#8fbf8f;font-size:13px;line-height:1.45}.api-config-close{background:transparent;border:0;color:#8fbf8f;font-size:24px;font-weight:900;cursor:pointer}
-      .api-config-body{padding:22px 24px}.api-config-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.api-config-field{display:flex;flex-direction:column;gap:7px}.api-config-field.full{grid-column:1/-1}.api-config-field label{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:#7fab7f;font-weight:900}.api-config-field input,.api-config-field textarea{background:#111f11;border:1px solid #254825;color:#e8f5e8;border-radius:8px;padding:12px;font:700 13px Sora,Arial}.api-config-field textarea{min-height:80px;resize:vertical}.api-config-actions{display:flex;gap:10px;justify-content:flex-end;padding:18px 24px;border-top:1px solid rgba(255,255,255,.08)}.api-btn{border:1px solid #315831;background:#122512;color:#dff5df;border-radius:9px;padding:11px 14px;font-weight:900;cursor:pointer}.api-btn.primary{background:#0b7d12;border-color:#0b7d12;color:#fff}.api-btn.blue{background:#0b3d78;border-color:#1767c2;color:#fff}.api-card-tools{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}.api-mini-btn{border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#e8f5e8;border-radius:7px;padding:8px 10px;font-size:12px;font-weight:900;cursor:pointer}.api-mini-btn.green{background:#0b7d12;border-color:#0b7d12}.api-status-line{font-size:12px;color:#8fbf8f;margin-top:8px}
+      .api-config-body{padding:22px 24px}.api-config-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.api-config-field{display:flex;flex-direction:column;gap:7px}.api-config-field.full{grid-column:1/-1}.api-config-field label{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:#7fab7f;font-weight:900}.api-config-field input,.api-config-field textarea{background:#111f11;border:1px solid #254825;color:#e8f5e8;border-radius:8px;padding:12px;font:700 13px Sora,Arial}.api-config-field textarea{min-height:80px;resize:vertical}.api-config-actions{display:flex;gap:10px;justify-content:flex-end;padding:18px 24px;border-top:1px solid rgba(255,255,255,.08)}.api-btn{border:1px solid #315831;background:#122512;color:#dff5df;border-radius:9px;padding:11px 14px;font-weight:900;cursor:pointer}.api-btn.primary{background:#0b7d12;border-color:#0b7d12;color:#fff}.api-btn.blue{background:#0b3d78;border-color:#1767c2;color:#fff}
+      .api-card-tools{display:flex!important;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center}.api-mini-btn{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#e8f5e8;border-radius:8px;padding:8px 10px;font-size:12px;font-weight:900;cursor:pointer}.api-mini-btn.green{background:#0b7d12;border-color:#0b7d12}.api-mini-btn.blue{background:#0b4d8f;border-color:#1767c2}.api-status-line{font-size:12px;color:#8fbf8f;flex-basis:100%;margin-top:2px}.api-card-patched{outline:1px solid rgba(46,204,64,.18);outline-offset:-1px}
       @media(max-width:700px){.api-config-grid{grid-template-columns:1fr}.api-config-actions{justify-content:stretch;flex-direction:column}.api-btn{width:100%}}
     `;
     document.head.appendChild(style);
@@ -83,7 +92,7 @@
     form.endpoint.value = item.endpoint || '';
     form.portal_url.value = item.portal_url || '';
     form.fonte.value = item.fonte || '';
-    form.config_json.value = item.config_json || '';
+    form.config_json.value = item.config_json || '{}';
     box.classList.add('open');
   }
 
@@ -118,21 +127,21 @@
       const res = await API.integracoes.testar(id);
       toast(`${res.message} Registros detectados: ${res.data?.count ?? 0}`);
       await loadAndPatch();
-    } catch (e) {
-      toast(e.message || 'Falha no teste da API.', 'err');
-    }
+    } catch (e) { toast(e.message || 'Falha no teste da API.', 'err'); }
   }
 
   async function sincronizarAtual() {
     const id = Number(document.querySelector('#apiConfigForm [name="id"]')?.value || 0);
     if (!id) return toast('Salve a configuração antes de sincronizar.', 'err');
+    await sincronizar(id);
+  }
+
+  async function sincronizar(id) {
     try {
       const res = await API.integracoes.sincronizar(id);
       toast(res.message || 'Sincronização concluída.');
       await loadAndPatch();
-    } catch (e) {
-      toast(e.message || 'Falha na sincronização.', 'err');
-    }
+    } catch (e) { toast(e.message || 'Falha na sincronização.', 'err'); }
   }
 
   function statusText(item) {
@@ -142,46 +151,78 @@
     return 'Pendente';
   }
 
+  function findBestCard(item) {
+    const selectors = ['.card', '.api-card', '.dash-card', '.integration-card', '.st-card', 'article', 'section > div', 'main > div > div', '.content div'];
+    const candidates = Array.from(document.querySelectorAll(selectors.join(','))).filter(visible);
+    const keywords = cardMatchers[item.slug] || [item.nome, item.fonte, item.slug];
+
+    const scored = candidates.map((el) => {
+      const t = norm(el.textContent);
+      let score = 0;
+      keywords.forEach((k) => { if (k && t.includes(norm(k))) score += 4; });
+      if (t.includes(norm(item.nome))) score += 6;
+      if (item.fonte && t.includes(norm(item.fonte))) score += 5;
+      if (t.includes('portal') || t.includes('sync') || t.includes('api')) score += 1;
+      const r = el.getBoundingClientRect();
+      if (r.width > 260 && r.width < 700 && r.height > 90 && r.height < 320) score += 2;
+      return { el, score, area: r.width * r.height };
+    }).filter((x) => x.score > 0).sort((a, b) => b.score - a.score || a.area - b.area);
+
+    return scored[0]?.el || null;
+  }
+
+  function patchOneCard(item) {
+    const card = findBestCard(item);
+    if (!card) return false;
+    card.classList.add('api-card-patched');
+    if (card.querySelector(`[data-api-tools-for="${item.id}"]`)) return true;
+
+    const tools = document.createElement('div');
+    tools.className = 'api-card-tools';
+    tools.setAttribute('data-api-tools-for', item.id);
+    tools.innerHTML = `
+      <button type="button" class="api-mini-btn" data-api-config-id="${esc(item.id)}">⚙ Editar API</button>
+      <button type="button" class="api-mini-btn green" data-api-sync-id="${esc(item.id)}">↻ Sincronizar</button>
+      <button type="button" class="api-mini-btn blue" data-api-test-id="${esc(item.id)}">✓ Testar</button>
+      <div class="api-status-line">Status: <strong>${esc(statusText(item))}</strong>${item.ultimo_sync ? ` · Último sync: ${esc(item.ultimo_sync)}` : ''}</div>
+    `;
+
+    const portalBtn = Array.from(card.querySelectorAll('a,button')).find((el) => norm(el.textContent).includes('portal') || norm(el.textContent).includes('mds') || norm(el.textContent).includes('transferegov'));
+    if (portalBtn) portalBtn.insertAdjacentElement('afterend', tools);
+    else card.appendChild(tools);
+    return true;
+  }
+
+  function patchNewButton() {
+    const addBtn = Array.from(document.querySelectorAll('button, .btn, [role="button"]')).find((b) => norm(b.textContent).includes('configurar api'));
+    if (!addBtn || addBtn.getAttribute('data-api-new-bound')) return;
+    addBtn.setAttribute('data-api-new-bound', '1');
+    addBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      openModal({ tipo: 'emendas', nome: 'Nova integração', slug: `integracao_${Date.now()}`, config_json: '{}' });
+    }, true);
+  }
+
   function patchCards() {
     if (!isPageActive()) return;
-    const textCards = Array.from(document.querySelectorAll('div, section, article')).filter(visible);
-    state.items.forEach((item) => {
-      const card = textCards.find((el) => {
-        const t = norm(el.textContent);
-        return t.includes(norm(item.nome).slice(0, 12)) || t.includes(norm(item.fonte || '').slice(0, 12)) || t.includes(norm(item.slug).replace(/_/g, ' '));
-      });
-      if (!card || card.querySelector(`[data-api-config-id="${item.id}"]`)) return;
-      const target = Array.from(card.querySelectorAll('button,a')).pop() || card;
-      const tools = document.createElement('div');
-      tools.className = 'api-card-tools';
-      tools.innerHTML = `<button class="api-mini-btn" data-api-config-id="${esc(item.id)}">⚙ Configurar</button><button class="api-mini-btn green" data-api-sync-id="${esc(item.id)}">↻ Sincronizar</button><div class="api-status-line">Status: <strong>${esc(statusText(item))}</strong>${item.ultimo_sync ? ` · Último sync: ${esc(item.ultimo_sync)}` : ''}</div>`;
-      target.insertAdjacentElement('afterend', tools);
-    });
-
-    const addBtn = Array.from(document.querySelectorAll('button, .btn, [role="button"]')).find((b) => norm(b.textContent).includes('configurar api'));
-    if (addBtn && !addBtn.getAttribute('data-api-new-bound')) {
-      addBtn.setAttribute('data-api-new-bound', '1');
-      addBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        openModal({ tipo: 'emendas', nome: 'Nova integração', slug: `integracao_${Date.now()}`, config_json: '{}' });
-      }, true);
-    }
+    state.items.forEach(patchOneCard);
+    patchNewButton();
   }
 
   async function loadAndPatch() {
     try {
       const res = await API.integracoes.listar('emendas');
       state.items = res.data || [];
+      document.querySelectorAll('[data-api-tools-for]').forEach((el) => el.remove());
       patchCards();
-    } catch (e) {
-      console.warn('Erro ao carregar integrações de API:', e);
-    }
+    } catch (e) { console.warn('Erro ao carregar integrações de API:', e); }
   }
 
   document.addEventListener('click', async (event) => {
     const config = event.target.closest('[data-api-config-id]');
     if (config) {
       event.preventDefault();
+      event.stopPropagation();
       const item = state.items.find((x) => Number(x.id) === Number(config.getAttribute('data-api-config-id')));
       if (item) openModal(item);
       return;
@@ -189,20 +230,28 @@
     const sync = event.target.closest('[data-api-sync-id]');
     if (sync) {
       event.preventDefault();
+      event.stopPropagation();
+      await sincronizar(sync.getAttribute('data-api-sync-id'));
+      return;
+    }
+    const test = event.target.closest('[data-api-test-id]');
+    if (test) {
+      event.preventDefault();
+      event.stopPropagation();
       try {
-        const res = await API.integracoes.sincronizar(sync.getAttribute('data-api-sync-id'));
-        toast(res.message || 'Sincronização concluída.');
+        const res = await API.integracoes.testar(test.getAttribute('data-api-test-id'));
+        toast(`${res.message} Registros detectados: ${res.data?.count ?? 0}`);
         await loadAndPatch();
-      } catch (e) {
-        toast(e.message || 'Falha na sincronização.', 'err');
-      }
+      } catch (e) { toast(e.message || 'Falha no teste da API.', 'err'); }
     }
   }, true);
 
   function init() {
     ensureStyles();
-    setTimeout(loadAndPatch, 400);
-    setInterval(() => { if (isPageActive()) patchCards(); }, 2500);
+    setTimeout(loadAndPatch, 300);
+    setTimeout(loadAndPatch, 1200);
+    setTimeout(loadAndPatch, 2600);
+    setInterval(() => { if (isPageActive()) patchCards(); }, 1800);
     window.addEventListener('painel-auth-ok', loadAndPatch);
   }
 
