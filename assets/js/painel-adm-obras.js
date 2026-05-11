@@ -1,5 +1,5 @@
-// Integração do módulo Obras Públicas do painel original.
-// Conecta criar, editar, progresso, status, imagem e excluir à API real.
+// Integração segura do módulo Obras Públicas do painel original.
+// Só atua quando a página ativa/título visível for Obras Públicas.
 
 (function () {
   const API = window.PrefeituraAPI;
@@ -17,6 +17,13 @@
     return d.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).replace('.', '');
   };
 
+  function visible(el) {
+    if (!el) return false;
+    const st = getComputedStyle(el);
+    const rect = el.getBoundingClientRect();
+    return st.display !== 'none' && st.visibility !== 'hidden' && Number(st.opacity) !== 0 && rect.width > 0 && rect.height > 0;
+  }
+
   function toast(text, type = 'ok') {
     let el = document.getElementById('painel-api-toast');
     if (!el) {
@@ -33,20 +40,33 @@
     el._t = setTimeout(() => { el.style.display = 'none'; }, 4200);
   }
 
-  function visible(el) {
-    if (!el) return false;
-    const st = getComputedStyle(el);
-    return st.display !== 'none' && st.visibility !== 'hidden' && Number(st.opacity) !== 0;
+  function isObrasPageActive() {
+    const visibleTitles = Array.from(document.querySelectorAll('h1,h2,.page-title,.content-title'))
+      .filter(visible)
+      .map((el) => norm(el.textContent));
+
+    return visibleTitles.some((t) =>
+      (t.includes('obras publicas') || t.includes('obras públicas')) &&
+      !t.includes('noticias') &&
+      !t.includes('licitações')
+    );
+  }
+
+  function findObrasTableBody() {
+    if (!isObrasPageActive()) return null;
+    const visibleTables = Array.from(document.querySelectorAll('table')).filter(visible);
+    const table = visibleTables.find((t) => {
+      const text = norm(t.textContent);
+      return text.includes('obra') && text.includes('secretaria') && text.includes('progresso') && text.includes('status');
+    });
+    return table?.querySelector('tbody') || null;
   }
 
   function findObraModal() {
     const modals = Array.from(document.querySelectorAll('.mo, .modal, [role="dialog"]'));
     return modals.find((modal) => {
       const t = norm(modal.textContent);
-      return visible(modal) && (t.includes('nova obra') || t.includes('obra publica') || t.includes('obra pública'));
-    }) || modals.find((modal) => {
-      const t = norm(modal.textContent);
-      return t.includes('obra') && (t.includes('progresso') || t.includes('secretaria') || t.includes('valor'));
+      return visible(modal) && (t.includes('nova obra') || t.includes('editar obra') || t.includes('obra publica') || t.includes('obra pública'));
     });
   }
 
@@ -103,27 +123,17 @@
   }
 
   function getData(modal) {
-    const nome = findField(modal, ['nome da obra', 'titulo', 'título', 'nome']);
-    const secretaria = findField(modal, ['secretaria'], 'select, input');
-    const descricao = findField(modal, ['descricao', 'descrição', 'objeto'], 'textarea, input');
-    const valor = findField(modal, ['valor'], 'input');
-    const inicio = findField(modal, ['inicio', 'início'], 'input');
-    const previsao = findField(modal, ['previsao', 'previsão', 'entrega'], 'input');
-    const progresso = findField(modal, ['progresso', 'execucao', 'execução'], 'input, select');
-    const status = findField(modal, ['status'], 'select, input');
-    const localizacao = findField(modal, ['localizacao', 'localização', 'endereco', 'endereço'], 'input, textarea');
-
     return {
       id: state.editingId || undefined,
-      nome: nome?.value || '',
-      secretaria: secretaria?.value || '',
-      descricao: descricao?.value || '',
-      valor: valor?.value || '',
-      inicio: inicio?.value || '',
-      previsao_entrega: previsao?.value || '',
-      progresso: progresso?.value || 0,
-      status: normalizeStatus(status?.value || 'em_andamento'),
-      localizacao: localizacao?.value || '',
+      nome: findField(modal, ['nome da obra', 'titulo', 'título', 'nome'])?.value || '',
+      secretaria: findField(modal, ['secretaria'], 'select, input')?.value || '',
+      descricao: findField(modal, ['descricao', 'descrição', 'objeto'], 'textarea, input')?.value || '',
+      valor: findField(modal, ['valor'], 'input')?.value || '',
+      inicio: findField(modal, ['inicio', 'início'], 'input')?.value || '',
+      previsao_entrega: findField(modal, ['previsao', 'previsão', 'entrega'], 'input')?.value || '',
+      progresso: findField(modal, ['progresso', 'execucao', 'execução'], 'input, select')?.value || 0,
+      status: normalizeStatus(findField(modal, ['status'], 'select, input')?.value || 'em_andamento'),
+      localizacao: findField(modal, ['localizacao', 'localização', 'endereco', 'endereço'], 'input, textarea')?.value || '',
       imagem: '',
     };
   }
@@ -131,6 +141,7 @@
   async function saveFromModal() {
     const modal = findObraModal();
     if (!modal) return false;
+
     try {
       const data = getData(modal);
       if (!data.nome.trim()) {
@@ -152,22 +163,11 @@
     }
   }
 
-  function isObrasPageActive() {
-    const txt = norm(document.body.textContent);
-    return txt.includes('obras publicas') || txt.includes('obras públicas') || location.hash.includes('obras');
-  }
-
-  function findObrasTableBody() {
-    const tables = Array.from(document.querySelectorAll('table')).filter((t) => visible(t));
-    let table = tables.find((t) => /obras cadastradas|progresso|secretaria|ações|acoes/i.test(t.textContent));
-    if (!table) table = tables.find((t) => /obra|progresso|execu|secretaria/i.test(t.textContent));
-    return table?.querySelector('tbody') || null;
-  }
-
   function findNewObraButton() {
+    if (!isObrasPageActive()) return null;
     return Array.from(document.querySelectorAll('button, .btn, [role="button"]')).find((btn) => {
       const t = norm(btn.textContent);
-      return t.includes('nova obra') || t.includes('adicionar obra') || (isObrasPageActive() && t.includes('nova'));
+      return t.includes('nova obra') || t.includes('adicionar obra');
     });
   }
 
@@ -227,12 +227,13 @@
   }
 
   async function renderPainelList(force = false) {
+    if (!force && !isObrasPageActive()) return;
+    const tbody = findObrasTableBody();
+    if (!tbody) return;
+
     try {
-      if (!force && !isObrasPageActive()) return;
       const res = await API.obras.listar();
       state.items = res.data || [];
-      const tbody = findObrasTableBody();
-      if (!tbody) return;
       tbody.innerHTML = state.items.map((o) => {
         const progresso = Math.max(0, Math.min(100, Number(o.progresso || 0)));
         return `
@@ -270,19 +271,31 @@
     document.addEventListener('click', async (event) => {
       const btn = event.target.closest('button, .btn, [role="button"], a');
       if (!btn) return;
-      setTimeout(() => renderPainelList(false), 250);
+
+      setTimeout(() => renderPainelList(false), 300);
       setTimeout(() => renderPainelList(false), 900);
+
       const editId = btn.getAttribute('data-obra-edit');
       if (editId) { event.preventDefault(); event.stopPropagation(); const item = state.items.find((x) => Number(x.id) === Number(editId)); if (item) openEditModal(item); return; }
+
       const delId = btn.getAttribute('data-obra-delete');
       if (delId) { event.preventDefault(); event.stopPropagation(); await deleteObra(delId); return; }
+
       const modal = findObraModal();
       const text = norm(btn.textContent);
-      if (modal && modal.contains(btn) && (text.includes('publicar') || text.includes('salvar') || text.includes('cadastrar'))) { event.preventDefault(); event.stopPropagation(); await saveFromModal(); }
-      if (text.includes('nova obra') || text.includes('adicionar obra')) { state.editingId = 0; state.editingImagem = ''; }
+      if (modal && modal.contains(btn) && (text.includes('publicar') || text.includes('salvar') || text.includes('cadastrar'))) {
+        event.preventDefault();
+        event.stopPropagation();
+        await saveFromModal();
+      }
+      if (text.includes('nova obra') || text.includes('adicionar obra')) {
+        state.editingId = 0;
+        state.editingImagem = '';
+      }
     }, true);
 
     document.addEventListener('change', async (event) => {
+      if (!isObrasPageActive()) return;
       const status = event.target.closest('select[data-obra-status]');
       if (status) { await updateStatus(status.getAttribute('data-obra-status'), status.value); return; }
       const progresso = event.target.closest('input[data-obra-progresso]');
@@ -293,7 +306,6 @@
   function init() {
     bindEvents();
     setTimeout(() => renderPainelList(false), 300);
-    setInterval(() => { if (isObrasPageActive()) renderPainelList(false); }, 5000);
     window.addEventListener('painel-auth-ok', () => renderPainelList(false));
   }
 
