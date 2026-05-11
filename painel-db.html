@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel DB — Prefeitura VGRP</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0b0f0b;--card:#111711;--card2:#182118;--line:#263426;--txt:#e8f5e8;--muted:#86a186;--green:#2ecc40;--red:#f85149;--gold:#f5c518;--blue:#388bfd}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font-family:Sora,Arial,sans-serif}.login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}.box{width:100%;max-width:430px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:28px;box-shadow:0 20px 70px rgba(0,0,0,.45)}h1,h2,h3{margin:0 0 10px}p{color:var(--muted);line-height:1.5}.field{margin:12px 0}label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:800;margin-bottom:6px}input,textarea,select{width:100%;border:1px solid var(--line);background:#0f160f;color:var(--txt);border-radius:10px;padding:11px 12px;font-family:inherit}textarea{min-height:92px;resize:vertical}.btn{border:0;border-radius:10px;padding:11px 15px;font-weight:800;cursor:pointer;font-family:inherit}.btn.primary{background:linear-gradient(135deg,#1a7a1a,var(--green));color:#fff}.btn.gray{background:#202a20;color:var(--txt);border:1px solid var(--line)}.btn.red{background:rgba(248,81,73,.12);color:var(--red);border:1px solid rgba(248,81,73,.35)}.btn.blue{background:rgba(56,139,253,.14);color:var(--blue);border:1px solid rgba(56,139,253,.35)}.hidden{display:none!important}.app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}.side{background:var(--card);border-right:1px solid var(--line);padding:22px}.brand{font-weight:900;text-transform:uppercase;font-size:18px}.brand em{color:var(--green);font-style:normal}.nav{margin-top:25px;display:grid;gap:8px}.nav button{text-align:left;background:transparent;color:var(--muted);border:1px solid transparent;border-radius:10px;padding:12px;cursor:pointer;font-weight:800}.nav button.active,.nav button:hover{background:rgba(46,204,64,.08);border-color:rgba(46,204,64,.22);color:var(--green)}.main{padding:28px}.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;gap:14px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px}.stat{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px}.stat strong{font-size:30px;display:block}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}.card-h{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--line);background:var(--card2);gap:10px}.card-b{padding:18px}table{width:100%;border-collapse:collapse}th,td{padding:12px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:1px}tr:hover td{background:rgba(46,204,64,.035)}.actions{display:flex;gap:6px;flex-wrap:wrap}.modal{position:fixed;inset:0;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50}.modal .box{max-width:780px;max-height:92vh;overflow:auto}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.msg{margin:12px 0;padding:11px 13px;border-radius:10px;background:rgba(56,139,253,.12);color:#bcd7ff;border:1px solid rgba(56,139,253,.25)}.err{background:rgba(248,81,73,.12);color:#ffb8b8;border-color:rgba(248,81,73,.25)}.ok{background:rgba(46,204,64,.12);color:#b8ffc0;border-color:rgba(46,204,64,.25)}.pill{display:inline-block;border-radius:99px;padding:3px 9px;font-size:11px;font-weight:800;background:rgba(46,204,64,.12);color:var(--green)}.preview{max-width:120px;border-radius:8px;margin-top:8px;border:1px solid var(--line)}@media(max-width:850px){.app{grid-template-columns:1fr}.side{position:sticky;top:0;z-index:10}.grid,.row{grid-template-columns:1fr}.top{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<div id="login" class="login">
+  <form class="box" id="loginForm">
+    <h1>Painel Administrativo</h1>
+    <p>Entre para gerenciar notícias, obras e licitações do portal.</p>
+    <div id="loginMsg"></div>
+    <div class="field"><label>E-mail</label><input id="email" type="email" value="admin@vgrp.local" required></div>
+    <div class="field"><label>Senha</label><input id="senha" type="password" value="VAGEMGRANDE2050MG" required></div>
+    <button class="btn primary" style="width:100%">Entrar</button>
+    <p style="font-size:12px">Teste a conexão em <code>/api/status.php</code>.</p>
+  </form>
+</div>
+
+<div id="app" class="app hidden">
+  <aside class="side">
+    <div class="brand">Prefeitura <em>VGRP</em></div>
+    <p id="userLabel">Administrador</p>
+    <div class="nav">
+      <button class="active" data-page="dashboard">📊 Dashboard</button>
+      <button data-page="noticias">📰 Notícias</button>
+      <button data-page="obras">🏗️ Obras</button>
+      <button data-page="licitacoes">📄 Licitações</button>
+      <button id="logoutBtn">🚪 Sair</button>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="top">
+      <div><h1 id="pageTitle">Dashboard</h1><p>Versão operacional ligada ao banco de dados.</p></div>
+      <a class="btn gray" href="/" target="_blank">Ver site público ↗</a>
+    </div>
+    <div id="globalMsg"></div>
+
+    <section id="dashboard" class="page">
+      <div class="grid">
+        <div class="stat"><strong id="countNoticias">0</strong><span>Notícias</span></div>
+        <div class="stat"><strong id="countObras">0</strong><span>Obras</span></div>
+        <div class="stat"><strong id="countLicitacoes">0</strong><span>Licitações</span></div>
+      </div>
+      <div class="card"><div class="card-h"><h3>Status</h3></div><div class="card-b"><p id="statusApi">Verificando API...</p></div></div>
+    </section>
+
+    <section id="noticias" class="page hidden">
+      <div class="card"><div class="card-h"><h3>Notícias</h3><button class="btn primary" onclick="openNoticia()">+ Nova Notícia</button></div><div class="card-b"><table><thead><tr><th>Título</th><th>Categoria</th><th>Status</th><th>Data</th><th>Ações</th></tr></thead><tbody id="noticiasBody"></tbody></table></div></div>
+    </section>
+
+    <section id="obras" class="page hidden">
+      <div class="card"><div class="card-h"><h3>Obras</h3><button class="btn primary" onclick="openObra()">+ Nova Obra</button></div><div class="card-b"><table><thead><tr><th>Nome</th><th>Secretaria</th><th>Status</th><th>Progresso</th><th>Ações</th></tr></thead><tbody id="obrasBody"></tbody></table></div></div>
+    </section>
+
+    <section id="licitacoes" class="page hidden">
+      <div class="card"><div class="card-h"><h3>Licitações</h3><button class="btn primary" onclick="openLicitacao()">+ Nova Licitação</button></div><div class="card-b"><table><thead><tr><th>Processo</th><th>Objeto</th><th>Modalidade</th><th>Status</th><th>Ações</th></tr></thead><tbody id="licitacoesBody"></tbody></table></div></div>
+    </section>
+  </main>
+</div>
+
+<div id="modal" class="modal hidden"><div class="box"><div id="modalContent"></div></div></div>
+
+<script src="assets/js/api-client.js"></script>
+<script>
+const state = { noticias: [], obras: [], licitacoes: [] };
+const $ = (id) => document.getElementById(id);
+function msg(text, type='msg', target='globalMsg'){ $(target).innerHTML = text ? `<div class="msg ${type}">${text}</div>` : ''; }
+function closeModal(){ $('modal').classList.add('hidden'); $('modalContent').innerHTML=''; }
+function esc(v){ return String(v ?? '').replace(/[&<>'"]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[s])); }
+function money(v){ return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); }
+
+async function init(){
+  try { const me = await PrefeituraAPI.auth.me(); showApp(me.usuario); } catch(e) { $('login').classList.remove('hidden'); }
+}
+async function showApp(user){
+  $('userLabel').textContent = user?.nome || 'Administrador';
+  $('login').classList.add('hidden'); $('app').classList.remove('hidden');
+  await loadAll();
+}
+$('loginForm').addEventListener('submit', async (e)=>{
+  e.preventDefault(); msg('', '', 'loginMsg');
+  try { const r = await PrefeituraAPI.auth.login($('email').value, $('senha').value); await showApp(r.usuario); }
+  catch(err){ msg(err.message, 'err', 'loginMsg'); }
+});
+$('logoutBtn').addEventListener('click', async ()=>{ await PrefeituraAPI.auth.logout(); location.reload(); });
+
+document.querySelectorAll('.nav button[data-page]').forEach(btn=>btn.addEventListener('click',()=>{
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active')); btn.classList.add('active');
+  document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
+  $(btn.dataset.page).classList.remove('hidden'); $('pageTitle').textContent = btn.textContent.replace(/[📊📰🏗️📄]/g,'').trim();
+}));
+
+async function loadAll(){
+  try{
+    const [n,o,l] = await Promise.all([PrefeituraAPI.noticias.listar(false,50), PrefeituraAPI.obras.listar(), PrefeituraAPI.licitacoes.listar()]);
+    state.noticias = n.data || []; state.obras = o.data || []; state.licitacoes = l.data || [];
+    renderNoticias(); renderObras(); renderLicitacoes();
+    $('countNoticias').textContent = state.noticias.length; $('countObras').textContent = state.obras.length; $('countLicitacoes').textContent = state.licitacoes.length;
+    try{ const st = await PrefeituraAPI.request('/api/status.php'); $('statusApi').textContent = st.message + ' Banco: ' + st.database; } catch(e){ $('statusApi').textContent = e.message; }
+  }catch(err){ msg(err.message,'err'); }
+}
+
+function renderNoticias(){
+  $('noticiasBody').innerHTML = state.noticias.map(n=>`<tr><td><b>${esc(n.titulo)}</b><br><small>${esc(n.resumo||'')}</small></td><td>${esc(n.categoria||'-')}</td><td><span class="pill">${esc(n.status)}</span></td><td>${esc(n.data_publicacao||'')}</td><td class="actions"><button class="btn blue" onclick="openNoticia(${n.id})">Editar</button><button class="btn red" onclick="delNoticia(${n.id})">Excluir</button></td></tr>`).join('') || '<tr><td colspan="5">Nenhuma notícia cadastrada.</td></tr>';
+}
+function renderObras(){
+  $('obrasBody').innerHTML = state.obras.map(o=>`<tr><td><b>${esc(o.nome)}</b><br><small>${money(o.valor)}</small></td><td>${esc(o.secretaria||'-')}</td><td><span class="pill">${esc(o.status)}</span></td><td>${esc(o.progresso)}%</td><td class="actions"><button class="btn blue" onclick="openObra(${o.id})">Editar</button><button class="btn red" onclick="delObra(${o.id})">Excluir</button></td></tr>`).join('') || '<tr><td colspan="5">Nenhuma obra cadastrada.</td></tr>';
+}
+function renderLicitacoes(){
+  $('licitacoesBody').innerHTML = state.licitacoes.map(l=>`<tr><td><b>${esc(l.processo)}</b></td><td>${esc(l.objeto)}</td><td>${esc(l.modalidade||'-')}</td><td><span class="pill">${esc(l.status)}</span></td><td class="actions"><button class="btn blue" onclick="openLicitacao(${l.id})">Editar</button><button class="btn red" onclick="delLicitacao(${l.id})">Excluir</button></td></tr>`).join('') || '<tr><td colspan="5">Nenhuma licitação cadastrada.</td></tr>';
+}
+
+function openNoticia(id){
+  const n = state.noticias.find(x=>Number(x.id)===Number(id)) || {};
+  $('modalContent').innerHTML = `<h2>${id?'Editar':'Nova'} Notícia</h2><form id="formNoticia"><input type="hidden" name="id" value="${esc(n.id||'')}"><div class="field"><label>Título</label><input name="titulo" value="${esc(n.titulo||'')}" required></div><div class="row"><div class="field"><label>Categoria</label><input name="categoria" value="${esc(n.categoria||'')}"></div><div class="field"><label>Status</label><select name="status"><option value="publicado">Publicado</option><option value="rascunho">Rascunho</option><option value="arquivado">Arquivado</option></select></div></div><div class="field"><label>Resumo</label><textarea name="resumo">${esc(n.resumo||'')}</textarea></div><div class="field"><label>Conteúdo completo</label><textarea name="conteudo">${esc(n.conteudo||'')}</textarea></div><div class="field"><label>Imagem de capa</label><input type="file" id="noticiaFile" accept="image/*"><input type="hidden" name="imagem" value="${esc(n.imagem||'')}">${n.imagem?`<img class="preview" src="${esc(n.imagem)}">`:''}</div><div class="actions"><button class="btn primary">Salvar</button><button type="button" class="btn gray" onclick="closeModal()">Cancelar</button></div></form>`;
+  document.querySelector('[name=status]').value = n.status || 'publicado'; $('modal').classList.remove('hidden');
+  $('formNoticia').onsubmit = saveNoticia;
+}
+async function saveNoticia(e){
+  e.preventDefault(); const form=e.target; const data=Object.fromEntries(new FormData(form).entries());
+  try{ if($('noticiaFile').files[0]){ const up=await PrefeituraAPI.upload($('noticiaFile').files[0],'noticias'); data.imagem=up.url; } await PrefeituraAPI.noticias.salvar(data); closeModal(); await loadAll(); msg('Notícia salva com sucesso.','ok'); }catch(err){ alert(err.message); }
+}
+async function delNoticia(id){ if(!confirm('Excluir esta notícia?'))return; try{ await PrefeituraAPI.noticias.excluir(id); await loadAll(); msg('Notícia excluída.','ok'); }catch(e){ msg(e.message,'err'); } }
+
+function openObra(id){
+  const o = state.obras.find(x=>Number(x.id)===Number(id)) || {};
+  $('modalContent').innerHTML = `<h2>${id?'Editar':'Nova'} Obra</h2><form id="formObra"><input type="hidden" name="id" value="${esc(o.id||'')}"><div class="field"><label>Nome</label><input name="nome" value="${esc(o.nome||'')}" required></div><div class="row"><div class="field"><label>Secretaria</label><input name="secretaria" value="${esc(o.secretaria||'')}"></div><div class="field"><label>Valor</label><input name="valor" value="${esc(o.valor||'')}"></div></div><div class="row"><div class="field"><label>Progresso</label><input type="number" min="0" max="100" name="progresso" value="${esc(o.progresso||0)}"></div><div class="field"><label>Status</label><select name="status"><option value="planejada">Planejada</option><option value="em_andamento">Em andamento</option><option value="concluida">Concluída</option><option value="paralisada">Paralisada</option></select></div></div><div class="field"><label>Descrição</label><textarea name="descricao">${esc(o.descricao||'')}</textarea></div><div class="actions"><button class="btn primary">Salvar</button><button type="button" class="btn gray" onclick="closeModal()">Cancelar</button></div></form>`;
+  document.querySelector('[name=status]').value = o.status || 'em_andamento'; $('modal').classList.remove('hidden'); $('formObra').onsubmit = async(e)=>{ e.preventDefault(); try{ await PrefeituraAPI.obras.salvar(Object.fromEntries(new FormData(e.target).entries())); closeModal(); await loadAll(); msg('Obra salva com sucesso.','ok'); }catch(err){ alert(err.message); } };
+}
+async function delObra(id){ if(!confirm('Excluir esta obra?'))return; try{ await PrefeituraAPI.obras.excluir(id); await loadAll(); msg('Obra excluída.','ok'); }catch(e){ msg(e.message,'err'); } }
+
+function openLicitacao(id){
+  const l = state.licitacoes.find(x=>Number(x.id)===Number(id)) || {};
+  $('modalContent').innerHTML = `<h2>${id?'Editar':'Nova'} Licitação</h2><form id="formLic"><input type="hidden" name="id" value="${esc(l.id||'')}"><div class="row"><div class="field"><label>Processo</label><input name="processo" value="${esc(l.processo||'')}" required></div><div class="field"><label>Modalidade</label><input name="modalidade" value="${esc(l.modalidade||'')}"></div></div><div class="field"><label>Objeto</label><textarea name="objeto" required>${esc(l.objeto||'')}</textarea></div><div class="row"><div class="field"><label>Valor</label><input name="valor" value="${esc(l.valor||'')}"></div><div class="field"><label>Status</label><select name="status"><option value="aberto">Aberto</option><option value="em_andamento">Em andamento</option><option value="homologado">Homologado</option><option value="encerrado">Encerrado</option><option value="cancelado">Cancelado</option></select></div></div><div class="actions"><button class="btn primary">Salvar</button><button type="button" class="btn gray" onclick="closeModal()">Cancelar</button></div></form>`;
+  document.querySelector('[name=status]').value = l.status || 'aberto'; $('modal').classList.remove('hidden'); $('formLic').onsubmit = async(e)=>{ e.preventDefault(); try{ await PrefeituraAPI.licitacoes.salvar(Object.fromEntries(new FormData(e.target).entries())); closeModal(); await loadAll(); msg('Licitação salva com sucesso.','ok'); }catch(err){ alert(err.message); } };
+}
+async function delLicitacao(id){ if(!confirm('Excluir esta licitação?'))return; try{ await PrefeituraAPI.licitacoes.excluir(id); await loadAll(); msg('Licitação excluída.','ok'); }catch(e){ msg(e.message,'err'); } }
+
+init();
+</script>
+</body>
+</html>
