@@ -21,6 +21,13 @@
     return date.toLocaleDateString('pt-BR');
   };
 
+  const mesAno = (value) => {
+    if (!value) return '';
+    const date = new Date(String(value).replace(' ', 'T'));
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).replace('.', '');
+  };
+
   const money = (value) => Number(value || 0).toLocaleString('pt-BR', {
     style: 'currency', currency: 'BRL'
   });
@@ -31,16 +38,19 @@
       em_andamento: 'Em andamento',
       homologado: 'Homologado',
       encerrado: 'Concluído',
-      cancelado: 'Cancelado'
+      cancelado: 'Cancelado',
+      planejada: 'Planejada',
+      concluida: 'Concluída',
+      paralisada: 'Paralisada'
     };
     return map[status] || status || 'Aberto';
   }
 
   function statusClass(status) {
-    if (status === 'homologado') return 'sp-ok';
+    if (status === 'homologado' || status === 'concluida') return 'sp-ok';
     if (status === 'encerrado') return 'sp-conc';
     if (status === 'em_andamento') return 'sp-info';
-    if (status === 'cancelado') return 'sp-err';
+    if (status === 'cancelado' || status === 'paralisada') return 'sp-err';
     return 'sp-ok';
   }
 
@@ -83,18 +93,26 @@
 
     grid.innerHTML = obras.slice(0, 12).map((o) => {
       const progresso = Math.max(0, Math.min(100, Number(o.progresso || 0)));
+      const cor = progresso >= 100 ? '#2ecc40' : progresso >= 65 ? '#f5c518' : progresso <= 5 ? '#388bfd' : '#2ecc40';
+      const fotosUrl = o.imagem || '';
       return `
-        <div class="oc">
-          <div class="oc-bar" style="background:${progresso >= 100 ? '#2ecc40' : '#f5c518'}"></div>
+        <div class="oc" style="border-top:4px solid ${cor};border-radius:10px;overflow:hidden">
           <div class="oc-body">
             <div class="oc-header">
               <div class="oc-nome">${esc(o.nome)}</div>
-              <span class="sp sp-info">${esc(o.status || 'em andamento')}</span>
+              <span class="sp ${statusClass(o.status)}">${esc(statusLabel(o.status))}</span>
             </div>
-            <div class="oc-desc">${esc(o.descricao || '')}</div>
-            <div class="oc-prog-row"><span class="oc-prog-lbl">Execução</span><span class="oc-prog-val">${progresso}%</span></div>
-            <div class="oc-track"><div class="oc-fill" style="width:${progresso}%;background:#2ecc40"></div></div>
-            <div class="oc-meta"><span>${esc(o.secretaria || '')}</span><span>${money(o.valor)}</span></div>
+            <div class="oc-desc">${esc(o.descricao || o.localizacao || '')}</div>
+            <div class="oc-prog-row"><span class="oc-prog-lbl">Execução física</span><span class="oc-prog-val">${progresso}%</span></div>
+            <div class="oc-track"><div class="oc-fill" style="width:${progresso}%;background:${cor}"></div></div>
+            <div class="oc-meta">
+              <span>💰 ${money(o.valor)}</span>
+              <span>🗓 ${esc(mesAno(o.inicio) || mesAno(o.previsao_entrega) || '')}</span>
+              <span>${esc(o.secretaria || '')}</span>
+            </div>
+            <div style="margin-top:14px">
+              ${fotosUrl ? `<a href="${esc(fotosUrl)}" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid #d9ead9;border-radius:7px;padding:10px 12px;color:#0b7a20;font-weight:900;text-decoration:none;background:#f7fbf7">📷 Ver Fotos (1)</a>` : `<button type="button" style="width:100%;border:1px solid #d9ead9;border-radius:7px;padding:10px 12px;color:#0b7a20;font-weight:900;background:#f7fbf7;cursor:not-allowed;opacity:.7">📷 Ver Fotos (0)</button>`}
+            </div>
           </div>
         </div>
       `;
