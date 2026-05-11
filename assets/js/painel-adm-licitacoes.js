@@ -1,9 +1,11 @@
 // Integração do módulo Licitações e Contratos do painel original.
-// Mantém a janela original e conecta o botão Publicar à API real.
+// Mantém a janela original e conecta criar, editar, status e edital PDF à API real.
 
 (function () {
   const API = window.PrefeituraAPI;
   if (!API || !API.licitacoes) return;
+
+  const state = { items: [], editingId: 0, editingDocumento: '' };
 
   const norm = (txt) => String(txt || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
   const esc = (value) => String(value ?? '').replace(/[&<>'"]/g, (s) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[s]));
@@ -12,6 +14,12 @@
     if (!value) return '';
     const d = new Date(String(value).replace(' ', 'T'));
     return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString('pt-BR');
+  };
+  const dateInput = (value) => {
+    if (!value) return '';
+    const d = new Date(String(value).replace(' ', 'T'));
+    if (Number.isNaN(d.getTime())) return String(value).slice(0, 10);
+    return d.toISOString().slice(0, 10);
   };
 
   function toast(text, type = 'ok') {
@@ -61,13 +69,21 @@
     });
   }
 
+  function setField(container, labels, value, selector = 'input, textarea, select') {
+    const field = findField(container, labels, selector);
+    if (!field) return;
+    field.value = value ?? '';
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+    field.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
   async function uploadEdital(modal) {
     const file = Array.from(modal.querySelectorAll('input[type="file"]'))[0];
     if (file?.files?.[0]) {
       const up = await API.upload(file.files[0], 'licitacoes');
       return up.url;
     }
-    return '';
+    return state.editingDocumento || '';
   }
 
   function getData(modal) {
@@ -80,6 +96,7 @@
     const status = findField(modal, ['status inicial', 'status'], 'select, input');
 
     return {
+      id: state.editingId || undefined,
       processo: processo?.value || '',
       modalidade: modalidade?.value || '',
       objeto: objeto?.value || '',
@@ -95,9 +112,20 @@
     const v = norm(value).replace(/\s+/g, '_');
     if (v.includes('andamento') || v.includes('processo') || v.includes('julgamento')) return 'em_andamento';
     if (v.includes('homolog')) return 'homologado';
-    if (v.includes('encerr')) return 'encerrado';
+    if (v.includes('encerr') || v.includes('conclu')) return 'encerrado';
     if (v.includes('cancel')) return 'cancelado';
     return 'aberto';
+  }
+
+  function statusLabel(status) {
+    return ({ aberto: 'Aberto', em_andamento: 'Em andamento', homologado: 'Homologado', encerrado: 'Encerrado', cancelado: 'Cancelado' }[status] || status || 'Aberto');
+  }
+
+  function statusClass(status) {
+    if (status === 'homologado' || status === 'encerrado') return 'sp-ok';
+    if (status === 'em_andamento') return 'sp-pend';
+    if (status === 'cancelado') return 'sp-err';
+    return 'sp-info';
   }
 
   async function saveFromModal() {
@@ -117,7 +145,9 @@
 
       data.documento = await uploadEdital(modal);
       await API.licitacoes.salvar(data);
-      toast('Processo licitatório publicado com sucesso.');
+      toast(state.editingId ? 'Processo atualizado com sucesso.' : 'Processo licitatório publicado com sucesso.');
+      state.editingId = 0;
+      state.editingDocumento = '';
       await renderPainelList();
 
       const close = modal.querySelector('.md-x, .close, [data-close]');
@@ -136,22 +166,84 @@
     return table?.querySelector('tbody') || null;
   }
 
+  function findNewProcessButton() {
+    return Array.from(document.querySelectorAll('button, .btn, [role="button"]')).find((btn) => norm(btn.textContent).includes('novo processo'));
+  }
+
+  function openEditModal(item) {
+    state.editingId = Number(item.id || 0);
+    state.editingDocumento = item.documento || '';
+    const btn = findNewProcessButton();
+    if (btn) btn.click();
+    setTimeout(() => fillModal(item), 250);
+  }
+
+  function fillModal(item) {
+    const modal = findLicModal();
+    if (!modal) return;
+    const title = modal.querySelector('h1,h2,h3,.md-title,.modal-title');
+    if (title && norm(title.textContent).includes('novo')) title.textContent = 'EDITAR PROCESSO LICITATÓRIO';
+
+    setField(modal, ['numero do processo', 'processo'], item.processo || '');
+    setField(modal, ['modalidade'], item.modalidade || '', 'select, input');
+    setField(modal, ['objeto'], item.objeto || '', 'textarea, input');
+    setField(modal, ['valor estimado', 'valor'], item.valor || '', 'input');
+    setField(modal, ['data de abertura', 'abertura', 'data'], dateInput(item.abertura), 'input');
+    setField(modal, ['justificativa'], item.justificativa || '', 'textarea, input');
+    setField(modal, ['status inicial', 'status'], item.status || 'aberto', 'select, input');
+
+    if (item.documento && !modal.querySelector('#editalAtualInfo')) {
+      const file = Array.from(modal.querySelectorAll('input[type="file"]'))[0];
+      if (file) {
+        const info = document.createElement('div');
+        info.id = 'editalAtualInfo';
+        info.style.cssText = 'font-size:12px;color:#8fbf8f;margin-top:6px;font-weight:700';
+        info.innerHTML = `Edital atual: <a href="${esc(item.documento)}" target="_blank" style="color:#2ecc40">abrir PDF</a>. Envie novo arquivo apenas se quiser substituir.`;
+        file.insertAdjacentElement('afterend', info);
+      }
+    }
+  }
+
+  async function updateStatus(id, status) {
+    const item = state.items.find((x) => Number(x.id) === Number(id));
+    if (!item) return;
+    try {
+      await API.licitacoes.salvar({ ...item, status });
+      toast('Status atualizado.');
+      await renderPainelList();
+    } catch (error) {
+      toast(error.message || 'Erro ao atualizar status.', 'err');
+    }
+  }
+
   async function renderPainelList() {
     try {
       const res = await API.licitacoes.listar();
-      const items = res.data || [];
+      state.items = res.data || [];
       const tbody = findLicTableBody();
       if (!tbody) return;
 
-      tbody.innerHTML = items.map((l) => `
+      tbody.innerHTML = state.items.map((l) => `
         <tr data-api-licitacao-id="${esc(l.id)}">
           <td class="tc mono">${esc(l.processo)}</td>
           <td>${esc(l.objeto)}</td>
           <td>${esc(l.modalidade || '')}</td>
           <td>${money(l.valor)}</td>
           <td>${esc(date(l.abertura))}</td>
-          <td><span class="sp ${l.status === 'homologado' ? 'sp-ok' : l.status === 'em_andamento' ? 'sp-pend' : 'sp-info'}">${esc(l.status || 'aberto')}</span></td>
-          <td>${l.documento ? `<a class="btn btn-sm" href="${esc(l.documento)}" target="_blank">📄 Edital</a>` : ''}</td>
+          <td><span class="sp ${statusClass(l.status)}">${esc(statusLabel(l.status))}</span></td>
+          <td>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+              ${l.documento ? `<a class="btn btn-sm" href="${esc(l.documento)}" target="_blank">📄 Edital</a>` : ''}
+              <button class="btn btn-sm" data-lic-edit="${esc(l.id)}">✏️ Editar</button>
+              <select data-lic-status="${esc(l.id)}" style="background:#111a11;color:#dff5df;border:1px solid #244024;border-radius:7px;padding:7px;font-weight:700">
+                <option value="aberto" ${l.status === 'aberto' ? 'selected' : ''}>Aberto</option>
+                <option value="em_andamento" ${l.status === 'em_andamento' ? 'selected' : ''}>Em andamento</option>
+                <option value="homologado" ${l.status === 'homologado' ? 'selected' : ''}>Homologado</option>
+                <option value="encerrado" ${l.status === 'encerrado' ? 'selected' : ''}>Encerrado</option>
+                <option value="cancelado" ${l.status === 'cancelado' ? 'selected' : ''}>Cancelado</option>
+              </select>
+            </div>
+          </td>
         </tr>
       `).join('') || '<tr><td colspan="7">Nenhum processo licitatório cadastrado.</td></tr>';
     } catch (error) {
@@ -163,6 +255,16 @@
     document.addEventListener('click', async (event) => {
       const btn = event.target.closest('button, .btn, [role="button"]');
       if (!btn) return;
+
+      const editId = btn.getAttribute('data-lic-edit');
+      if (editId) {
+        event.preventDefault();
+        event.stopPropagation();
+        const item = state.items.find((x) => Number(x.id) === Number(editId));
+        if (item) openEditModal(item);
+        return;
+      }
+
       const text = norm(btn.textContent);
       const modal = findLicModal();
       if (!modal || !modal.contains(btn)) return;
@@ -171,6 +273,20 @@
         event.preventDefault();
         event.stopPropagation();
         await saveFromModal();
+      }
+    }, true);
+
+    document.addEventListener('change', async (event) => {
+      const sel = event.target.closest('select[data-lic-status]');
+      if (!sel) return;
+      await updateStatus(sel.getAttribute('data-lic-status'), sel.value);
+    }, true);
+
+    document.addEventListener('click', (event) => {
+      const btn = event.target.closest('button, .btn, [role="button"]');
+      if (btn && norm(btn.textContent).includes('novo processo')) {
+        state.editingId = 0;
+        state.editingDocumento = '';
       }
     }, true);
   }
