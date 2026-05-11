@@ -96,6 +96,54 @@ window.PrefeituraAPI = {
     },
   },
 
+  secretarias: {
+    listar() {
+      return PrefeituraAPI.request('/api/secretarias.php');
+    },
+    salvar(dados) {
+      return PrefeituraAPI.request('/api/secretarias.php', { method: 'POST', body: JSON.stringify(dados) });
+    },
+    excluir(id) {
+      return PrefeituraAPI.request(`/api/secretarias.php?id=${id}`, { method: 'DELETE' });
+    },
+  },
+
+  legislacao: {
+    listar(publico = true) {
+      return PrefeituraAPI.request(`/api/legislacao.php${publico ? '?public=1' : '?public=0'}`);
+    },
+    salvar(dados) {
+      return PrefeituraAPI.request('/api/legislacao.php', { method: 'POST', body: JSON.stringify(dados) });
+    },
+    excluir(id) {
+      return PrefeituraAPI.request(`/api/legislacao.php?id=${id}`, { method: 'DELETE' });
+    },
+  },
+
+  diarias: {
+    listar(publico = true) {
+      return PrefeituraAPI.request(`/api/diarias.php${publico ? '?public=1' : '?public=0'}`);
+    },
+    salvar(dados) {
+      return PrefeituraAPI.request('/api/diarias.php', { method: 'POST', body: JSON.stringify(dados) });
+    },
+    excluir(id) {
+      return PrefeituraAPI.request(`/api/diarias.php?id=${id}`, { method: 'DELETE' });
+    },
+  },
+
+  emendas: {
+    listar(publico = true) {
+      return PrefeituraAPI.request(`/api/emendas.php${publico ? '?public=1' : '?public=0'}`);
+    },
+    salvar(dados) {
+      return PrefeituraAPI.request('/api/emendas.php', { method: 'POST', body: JSON.stringify(dados) });
+    },
+    excluir(id) {
+      return PrefeituraAPI.request(`/api/emendas.php?id=${id}`, { method: 'DELETE' });
+    },
+  },
+
   async upload(file, tipo = 'geral') {
     const form = new FormData();
     form.append('arquivo', file);
