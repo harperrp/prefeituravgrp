@@ -1,121 +1,126 @@
 // Portal público: concursos + conteúdo editável de Prefeitura/Transparência.
-// Correção: concursos abre dentro do layout do site, sem esconder topo/menu/rodapé.
+// Correção definitiva: concursos vira uma página interna .pg do index.html, preservando #site, topo, menu e rodapé.
 (function(){
   const API=window.PrefeituraAPI; if(!API) return;
   const norm=t=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
   const esc=v=>String(v??'').replace(/[&<>'"]/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[s]));
-  function visible(el){if(!el)return false;const st=getComputedStyle(el),r=el.getBoundingClientRect();return st.display!=='none'&&st.visibility!=='hidden'&&r.width>0&&r.height>0}
-  function title(){return Array.from(document.querySelectorAll('h1,h2,.section-title,.page-title')).filter(visible).map(el=>norm(el.textContent)).join(' | ')}
-  function page(){const t=title()+ ' '+norm(location.hash); if(t.includes('concursos publicos')||t.includes('concursos públicos')||location.hash.includes('concursos'))return'concursos'; if(t.includes('a prefeitura')||location.hash.includes('prefeitura'))return'prefeitura'; if(t.includes('portal da transparencia')||t.includes('portal da transparência')||location.hash.includes('transparencia'))return'transparencia'; return''}
-  function fmt(d){if(!d)return '—';const x=new Date(String(d).replace(' ','T'));return isNaN(x)?d:x.toLocaleDateString('pt-BR')}
-  function statusLabel(s){return {aberto:'Aberto',em_andamento:'Em andamento',concluido:'Concluído',cancelado:'Cancelado'}[s]||s||'Aberto'}
-
-  function getPortalContentRoot(){
-    return document.querySelector('#app main') ||
-      document.querySelector('main') ||
-      document.querySelector('[data-page-root]') ||
-      document.querySelector('.page-content') ||
-      document.querySelector('.content') ||
-      document.body;
-  }
+  const fmt=d=>{if(!d)return '—';const x=new Date(String(d).replace(' ','T'));return isNaN(x)?d:x.toLocaleDateString('pt-BR')};
+  const statusLabel=s=>({aberto:'Aberto',em_andamento:'Em andamento',concluido:'Concluído',cancelado:'Cancelado'}[s]||s||'Aberto');
 
   function styles(){
     if(document.getElementById('portal-cp-style'))return;
     const s=document.createElement('style');
     s.id='portal-cp-style';
     s.textContent=`
-      #portalConcursosPage{background:#f4f7f4;min-height:620px}.portal-conc-hero{background:#002b08;color:#fff;padding:92px 0 74px;border-bottom:4px solid #19aa2a}.portal-conc-hero-inner{max-width:1180px;margin:0 auto}.portal-conc-back{color:#7bcf80;text-decoration:none;font:800 12px Sora,Arial;letter-spacing:.12em;text-transform:uppercase}.portal-conc-hero h1{margin:28px 0 12px;font:900 clamp(38px,6vw,72px) Sora,Arial;text-transform:uppercase;letter-spacing:.04em}.portal-conc-hero h1 span{color:#21c037}.portal-conc-hero p{max-width:720px;color:#d4e4d4;font:700 16px Sora,Arial;line-height:1.55}.portal-conc-wrap{max-width:1180px;margin:44px auto 70px;background:#fff;border-radius:14px;box-shadow:0 16px 42px rgba(0,0,0,.08);overflow:hidden}.portal-conc-head{padding:22px 26px;border-bottom:1px solid #eef3ee}.portal-conc-head h3{margin:0;font:900 18px Sora,Arial;text-transform:uppercase;color:#102510}.portal-conc-table{width:100%;border-collapse:collapse}.portal-conc-table th{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:#5a735a;text-align:left;padding:14px 18px;background:#f7faf7}.portal-conc-table td{padding:14px 18px;border-top:1px solid #edf2ed;color:#526852;font-size:13px}.portal-conc-title{font-weight:900;color:#203520}.portal-conc-status{display:inline-flex;border-radius:999px;padding:5px 10px;font-weight:900;font-size:12px}.portal-conc-status.aberto{background:#e5f1ff;color:#1264b0}.portal-conc-status.em_andamento{background:#fff4c2;color:#7a5a00}.portal-conc-status.concluido{background:#dff8e4;color:#087a16}.portal-conc-status.cancelado{background:#ffe2e2;color:#9b1c1c}.portal-conc-btn{display:inline-flex;text-decoration:none;background:#087a16;color:#fff;border-radius:8px;padding:8px 12px;font-weight:900;font-size:12px}.portal-page-grid{max-width:1180px;margin:40px auto;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.portal-page-card{background:#fff;border-radius:14px;box-shadow:0 16px 42px rgba(0,0,0,.08);border-top:5px solid #12851f;padding:22px}.portal-page-card h3{margin:0 0 12px;font:900 18px Sora,Arial;text-transform:uppercase;color:#152815}.portal-page-card p{white-space:pre-line;line-height:1.55;color:#526852;font-size:14px}.portal-page-card a{color:#087a16;font-weight:900;text-decoration:none}.portal-trans-list{max-width:1180px;margin:40px auto;background:#062b0d;border-radius:14px;padding:28px;display:grid;grid-template-columns:1fr;gap:12px}.portal-trans-item{display:flex;justify-content:space-between;align-items:center;gap:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:14px 18px;color:#e7ffe7;text-decoration:none}.portal-trans-item strong{color:#fff}.portal-trans-item span{color:#aee6ae;font-size:13px}@media(max-width:900px){.portal-page-grid{grid-template-columns:1fr}.portal-conc-wrap{overflow:auto}.portal-conc-hero{padding-left:20px;padding-right:20px}.portal-conc-wrap{margin-left:18px;margin-right:18px}}
+      #pg-concursos{background:#f4f6f4;min-height:640px}.concursos-table-wrap{max-width:1280px;margin:0 auto;padding:44px 28px 70px}.concursos-card{background:#fff;border-radius:12px;box-shadow:var(--s1,0 4px 20px rgba(0,60,0,.09));overflow:hidden}.concursos-card-head{padding:18px 22px;border-bottom:1px solid #eef2ee;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.concursos-card-title{font-family:'Barlow Condensed',Arial,sans-serif;font-weight:900;font-size:18px;text-transform:uppercase;letter-spacing:.7px;color:#102510}.concursos-public-table{width:100%;border-collapse:collapse}.concursos-public-table th{padding:10px 18px;font-size:9.5px;font-weight:900;letter-spacing:1.6px;text-transform:uppercase;color:#4a5e4a;text-align:left;background:#f8fcf8;border-bottom:1px solid #e8f0e8}.concursos-public-table td{padding:13px 18px;font-size:12.5px;color:#4a5e4a;border-bottom:1px solid #eef2ee;vertical-align:middle}.concursos-public-table tr:last-child td{border-bottom:0}.conc-title{font-weight:800;color:#152815}.conc-desc{display:block;margin-top:3px;color:#6a7d6a;font-size:11.5px;line-height:1.35}.conc-status{display:inline-flex;align-items:center;border-radius:999px;padding:4px 10px;font-weight:900;font-size:11px}.conc-status.aberto{background:#dbeafe;color:#1e40af}.conc-status.em_andamento{background:#fef3c7;color:#78350f}.conc-status.concluido{background:#d1fae5;color:#065f46}.conc-status.cancelado{background:#fee2e2;color:#991b1b}.conc-edital{display:inline-flex;align-items:center;gap:5px;background:#0b6f16;color:#fff!important;text-decoration:none;border-radius:6px;padding:7px 12px;font-weight:900;font-size:11px}.conc-edital:hover{background:#1a7a1a}.conc-empty{padding:28px;color:#4a5e4a}.mnl a[data-concursos-link].act{color:#f5c518;border-bottom-color:#f5c518}@media(max-width:850px){.concursos-card{overflow:auto}.concursos-public-table{min-width:760px}}
     `;
-    document.head.appendChild(s)
+    document.head.appendChild(s);
   }
 
-  function hideOnlyCurrentDynamicContent(){
-    const root=getPortalContentRoot();
-    Array.from(root.children).forEach(el=>{
-      if(el.id==='portalConcursosPage') return;
-      if(['HEADER','NAV','FOOTER','SCRIPT','STYLE'].includes(el.tagName)) return;
-      if(el.closest('header,nav,footer')) return;
-      el.setAttribute('data-concursos-hidden','1');
-      el.style.display='none';
-    });
+  function pageContainer(){
+    const currentPg=document.querySelector('.pg')?.parentElement;
+    return currentPg || document.querySelector('#site') || document.body;
   }
 
-  function restoreSections(){
-    document.querySelectorAll('[data-concursos-hidden="1"]').forEach(el=>{
-      el.style.display='';
-      el.removeAttribute('data-concursos-hidden');
+  function ensureConcursosPage(){
+    styles();
+    let pg=document.getElementById('pg-concursos');
+    if(pg) return pg;
+    pg=document.createElement('section');
+    pg.id='pg-concursos';
+    pg.className='pg';
+    pg.innerHTML=`
+      <div class="inner-hero">
+        <div class="ih-in">
+          <button class="ih-back" type="button" data-voltar-transparencia>← Voltar para Transparência</button>
+          <h1 class="ih-title">Concursos <em>Públicos</em></h1>
+          <p class="ih-desc">Editais, andamento, inscrições, vagas e nomeações dos concursos públicos municipais.</p>
+          <div class="ih-pills"><span class="ih-pill g">C.5 da LAI</span><span class="ih-pill">Editais</span><span class="ih-pill">Andamento</span><span class="ih-pill">Nomeações</span></div>
+        </div>
+      </div>
+      <div class="concursos-table-wrap">
+        <div class="concursos-card">
+          <div class="concursos-card-head"><div class="concursos-card-title">Concursos publicados</div></div>
+          <table class="concursos-public-table">
+            <thead><tr><th>Concurso</th><th>Publicação</th><th>Vagas</th><th>Etapa</th><th>Status</th><th>Edital</th></tr></thead>
+            <tbody id="concursosPublicTbody"><tr><td colspan="6">Carregando concursos...</td></tr></tbody>
+          </table>
+        </div>
+      </div>`;
+    pageContainer().appendChild(pg);
+    return pg;
+  }
+
+  function setActivePage(pageId){
+    document.querySelectorAll('.pg').forEach(pg=>pg.classList.remove('act'));
+    const pg=ensureConcursosPage();
+    pg.classList.add('act');
+    document.querySelectorAll('.mnl a').forEach(a=>a.classList.remove('act'));
+    const menuConc=document.querySelector('.mnl a[data-concursos-link]');
+    if(menuConc) menuConc.classList.add('act');
+  }
+
+  function markConcursosCard(){
+    document.querySelectorAll('a,button,.mod,.card,article,div').forEach(el=>{
+      const tx=norm(el.textContent||'');
+      if(tx.includes('concursos publicos')||tx.includes('concursos públicos')){
+        if(el.matches('a')) el.setAttribute('href','#concursos');
+        el.setAttribute('data-concursos-link','1');
+      }
     });
   }
 
   async function renderConcursos(){
-    if(!API.concursos)return;
-    styles();
-    const root=getPortalContentRoot();
-    hideOnlyCurrentDynamicContent();
-    let pageEl=document.getElementById('portalConcursosPage');
-    if(!pageEl){
-      pageEl=document.createElement('section');
-      pageEl.id='portalConcursosPage';
-      pageEl.innerHTML=`
-        <div class="portal-conc-hero"><div class="portal-conc-hero-inner">
-          <a href="#transparencia" class="portal-conc-back">← Voltar para Transparência</a>
-          <h1>Concursos <span>Públicos</span></h1>
-          <p>Editais, andamento, inscrições, vagas e nomeações dos concursos públicos municipais.</p>
-        </div></div>
-        <div id="portalConcursosReal" class="portal-conc-wrap">
-          <div class="portal-conc-head"><h3>Concursos publicados</h3></div>
-          <table class="portal-conc-table"><thead><tr><th>Concurso</th><th>Publicação</th><th>Vagas</th><th>Etapa</th><th>Status</th><th>Edital</th></tr></thead><tbody></tbody></table>
-        </div>`;
-      root.appendChild(pageEl);
+    const pg=ensureConcursosPage();
+    setActivePage('concursos');
+    const tbody=pg.querySelector('#concursosPublicTbody');
+    try{
+      const res=await API.concursos.listar(true);
+      const rows=res.data||[];
+      tbody.innerHTML=rows.length?rows.map(c=>`<tr><td><span class="conc-title">${esc(c.titulo)}</span><span class="conc-desc">${esc(c.descricao||'')}</span></td><td>${esc(fmt(c.publicacao))}</td><td>${esc(c.vagas||0)}</td><td>${esc(c.etapa||'')}</td><td><span class="conc-status ${esc(c.status)}">${esc(statusLabel(c.status))}</span></td><td>${c.edital?`<a class="conc-edital" target="_blank" href="${esc(c.edital)}">📄 Edital</a>`:'—'}</td></tr>`).join(''):'<tr><td colspan="6"><div class="conc-empty">Nenhum concurso publicado.</div></td></tr>';
+    }catch(err){
+      tbody.innerHTML='<tr><td colspan="6"><div class="conc-empty">Não foi possível carregar os concursos.</div></td></tr>';
     }
-    pageEl.style.display='block';
-    const res=await API.concursos.listar(true);
-    pageEl.querySelector('tbody').innerHTML=(res.data||[]).map(c=>`<tr><td><span class="portal-conc-title">${esc(c.titulo)}</span><br><small>${esc(c.descricao||'')}</small></td><td>${esc(fmt(c.publicacao))}</td><td>${esc(c.vagas||0)}</td><td>${esc(c.etapa||'')}</td><td><span class="portal-conc-status ${esc(c.status)}">${esc(statusLabel(c.status))}</span></td><td>${c.edital?`<a class="portal-conc-btn" target="_blank" href="${esc(c.edital)}">📄 Edital</a>`:'—'}</td></tr>`).join('')||'<tr><td colspan="6">Nenhum concurso publicado.</td></tr>';
-    setTimeout(()=>window.scrollTo({top:0,behavior:'smooth'}),80);
+    window.scrollTo({top:0,behavior:'smooth'});
   }
 
-  async function renderPrefeitura(){
-    restoreSections();
-    document.getElementById('portalConcursosPage')?.remove();
-    if(!API.paginas)return;
-    const res=await API.paginas.listar('prefeitura',true);
-    let grid=document.getElementById('portalPrefeituraEditavel');
-    if(!grid){grid=document.createElement('div');grid.id='portalPrefeituraEditavel';grid.className='portal-page-grid';getPortalContentRoot().appendChild(grid)}
-    grid.innerHTML=(res.data||[]).map(b=>`<article class="portal-page-card"><h3>${esc(b.titulo)}</h3>${b.subtitulo?`<strong>${esc(b.subtitulo)}</strong>`:''}<p>${esc(b.conteudo||'')}</p>${b.link_url?`<a href="${esc(b.link_url)}">${esc(b.link_texto||'Acessar')} →</a>`:''}</article>`).join('')
-  }
-
-  async function renderTransparencia(){
-    restoreSections();
-    document.getElementById('portalConcursosPage')?.remove();
-    if(!API.paginas)return;
-    const res=await API.paginas.listar('transparencia',true);
-    let list=document.getElementById('portalTransparenciaEditavel');
-    if(!list){list=document.createElement('div');list.id='portalTransparenciaEditavel';list.className='portal-trans-list';getPortalContentRoot().appendChild(list)}
-    list.innerHTML=(res.data||[]).map(b=>`<a class="portal-trans-item" href="${esc(b.link_url||'#')}"><div><strong>${esc(b.titulo)}</strong><br><span>${esc(b.conteudo||'')}</span></div><span>${esc(b.link_texto||'Acessar')} ↗</span></a>`).join('')
-  }
-
-  async function refresh(){
-    styles();
-    const p=page();
-    if(p==='concursos') return renderConcursos();
-    if(p==='prefeitura') return renderPrefeitura();
-    if(p==='transparencia') return renderTransparencia();
+  function voltarTransparencia(){
+    if(typeof window.navTo==='function'){
+      window.navTo('transparencia');
+    }else{
+      document.querySelectorAll('.pg').forEach(pg=>pg.classList.remove('act'));
+      const trans=document.getElementById('pg-transparencia')||document.querySelector('[id*="transparencia"].pg');
+      if(trans) trans.classList.add('act');
+      location.hash='transparencia';
+    }
   }
 
   document.addEventListener('click',function(e){
-    const link=e.target.closest('a,button,.card,article,div');
-    if(!link) return;
+    const back=e.target.closest('[data-voltar-transparencia]');
+    if(back){e.preventDefault();voltarTransparencia();return;}
+
+    const link=e.target.closest('a,button,.mod,.card,article,div');
+    if(!link || link.closest('#pg-concursos')) return;
     const txt=norm(link.textContent||'');
     const href=(link.getAttribute && (link.getAttribute('href')||'')) || '';
-    const isConcursos = txt.includes('concursos publicos') || txt.includes('concursos públicos') || href.includes('concursos');
-    if(isConcursos && !link.closest('#portalConcursosPage')){
+    const isConcursos=txt.includes('concursos publicos')||txt.includes('concursos públicos')||href==='#concursos'||href.includes('concursos');
+    if(isConcursos){
       e.preventDefault();
-      e.stopPropagation();
-      location.hash='concursos';
-      setTimeout(renderConcursos,120);
+      e.stopImmediatePropagation();
+      history.replaceState(null,'','#concursos');
+      renderConcursos();
     }
   },true);
 
-  window.addEventListener('hashchange',()=>setTimeout(refresh,250));
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{setTimeout(refresh,500);setTimeout(refresh,1500)});else{setTimeout(refresh,500);setTimeout(refresh,1500)}
+  window.addEventListener('hashchange',()=>{ if(location.hash==='#concursos') setTimeout(renderConcursos,80); });
+
+  function boot(){
+    styles();
+    markConcursosCard();
+    ensureConcursosPage();
+    if(location.hash==='#concursos') setTimeout(renderConcursos,250);
+    setTimeout(markConcursosCard,800);
+    setTimeout(markConcursosCard,1800);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 })();
