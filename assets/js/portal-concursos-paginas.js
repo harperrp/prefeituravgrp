@@ -1,5 +1,5 @@
 // Portal público: concursos + conteúdo editável de Prefeitura/Transparência.
-// Correção definitiva: concursos vira uma página interna .pg do index.html, preservando #site, topo, menu e rodapé.
+// Correção: concursos é inserido antes do rodapé, junto das páginas internas do index.
 (function(){
   const API=window.PrefeituraAPI; if(!API) return;
   const norm=t=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
@@ -17,15 +17,37 @@
     document.head.appendChild(s);
   }
 
-  function pageContainer(){
-    const currentPg=document.querySelector('.pg')?.parentElement;
-    return currentPg || document.querySelector('#site') || document.body;
+  function getFooter(){
+    return document.querySelector('footer') || document.querySelector('.footer') || document.querySelector('#footer');
+  }
+
+  function getPagesHost(){
+    const pg=document.querySelector('.pg');
+    if(pg && pg.parentElement) return pg.parentElement;
+    const site=document.querySelector('#site');
+    return site || document.body;
+  }
+
+  function placeBeforeFooter(pg){
+    const footer=getFooter();
+    const host=getPagesHost();
+    if(footer && footer.parentElement){
+      footer.parentElement.insertBefore(pg, footer);
+      return;
+    }
+    host.appendChild(pg);
   }
 
   function ensureConcursosPage(){
     styles();
     let pg=document.getElementById('pg-concursos');
-    if(pg) return pg;
+    if(pg){
+      const footer=getFooter();
+      if(footer && pg.compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_PRECEDING){
+        placeBeforeFooter(pg);
+      }
+      return pg;
+    }
     pg=document.createElement('section');
     pg.id='pg-concursos';
     pg.className='pg';
@@ -47,13 +69,13 @@
           </table>
         </div>
       </div>`;
-    pageContainer().appendChild(pg);
+    placeBeforeFooter(pg);
     return pg;
   }
 
-  function setActivePage(pageId){
-    document.querySelectorAll('.pg').forEach(pg=>pg.classList.remove('act'));
+  function setActivePage(){
     const pg=ensureConcursosPage();
+    document.querySelectorAll('.pg').forEach(p=>p.classList.remove('act'));
     pg.classList.add('act');
     document.querySelectorAll('.mnl a').forEach(a=>a.classList.remove('act'));
     const menuConc=document.querySelector('.mnl a[data-concursos-link]');
@@ -61,7 +83,7 @@
   }
 
   function markConcursosCard(){
-    document.querySelectorAll('a,button,.mod,.card,article,div').forEach(el=>{
+    document.querySelectorAll('a,button,.mod,.card,article').forEach(el=>{
       const tx=norm(el.textContent||'');
       if(tx.includes('concursos publicos')||tx.includes('concursos públicos')){
         if(el.matches('a')) el.setAttribute('href','#concursos');
@@ -72,7 +94,7 @@
 
   async function renderConcursos(){
     const pg=ensureConcursosPage();
-    setActivePage('concursos');
+    setActivePage();
     const tbody=pg.querySelector('#concursosPublicTbody');
     try{
       const res=await API.concursos.listar(true);
@@ -99,7 +121,7 @@
     const back=e.target.closest('[data-voltar-transparencia]');
     if(back){e.preventDefault();voltarTransparencia();return;}
 
-    const link=e.target.closest('a,button,.mod,.card,article,div');
+    const link=e.target.closest('a,button,.mod,.card,article');
     if(!link || link.closest('#pg-concursos')) return;
     const txt=norm(link.textContent||'');
     const href=(link.getAttribute && (link.getAttribute('href')||'')) || '';
